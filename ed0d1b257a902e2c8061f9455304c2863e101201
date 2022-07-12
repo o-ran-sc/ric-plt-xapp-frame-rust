@@ -33,6 +33,29 @@
       "message": "recheck",
       "revId": "ed0d1b257a902e2c8061f9455304c2863e101201",
       "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d3b985cb_9cf19f33",
+        "filename": "INFO.yaml",
+        "patchSetId": 1
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1000059
+      },
+      "writtenOn": "2022-07-12T18:24:41Z",
+      "side": 1,
+      "message": "This cannot be empty. \nCan we add a timezone?",
+      "range": {
+        "startLine": 46,
+        "startChar": 6,
+        "endLine": 46,
+        "endChar": 18
+      },
+      "revId": "ed0d1b257a902e2c8061f9455304c2863e101201",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53"
     }
   ]
 }
