@@ -1,0 +1,56 @@
+---
+project: 'ric_plt_xapp_frame_rust'
+project_creation_date: '2022-07-11'
+project_category: ''
+lifecycle_state: 'Incubation'
+project_lead: &oran_ric_plt_xapp_frame_rust_ptl
+    name: 'Thoralf Czichy'
+    email: 'thoralf.czichy@nokia.com'
+    id: 'czichy'
+    company: 'Nokia'
+    timezone: 'Europe/Helsinki'
+primary_contact: *oran_ric_plt_xapp_frame_rust_ptl
+issue_tracking:
+    type: 'jira'
+    url: 'https://jira.o-ran-sc.org/projects/'
+    key: 'RIC'
+mailing_list:
+    type: 'groups.io'
+    url: 'main@lists.o-ran-sc.org'
+    tag: '[]'
+realtime_discussion:
+    type: 'NA'
+    server: 'NA'
+    channel: 'NA'
+meetings:
+    - type: 'gotomeeting+irc'
+      agenda: 'https://wiki.o-ran-sc.org/display/'
+      url: ''
+      server: 'freenode.net'
+      channel: '#oran'
+      repeats: ''
+      time: ''
+repositories:
+    - ric-plt/xapp-frame-rust
+committers:
+    - <<: *oran_ric_plt_xapp_frame_rust_ptl
+    - name: 'Johannes Becker'
+      email: 'johannes@caur.us'
+      company: 'caurus'
+      id: 'jkbecker'
+      timezone: ''
+    - name: 'Bryan Russett'
+      email: 'bryan@caur.us'
+      company: 'caurus'
+      id: 'bryanr'
+      timezone: ''
+tsc:
+    # yamllint disable rule:line-length
+    approval: 'https://wiki.o-ran-sc.org/display/TOC'
+    changes:
+        - type: 'promotion'
+          name: 'Bryan Russett'
+          link: ''
+        - type: 'promotion'
+          name: 'Johannes Becker'
+          link: ''
