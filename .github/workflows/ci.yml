@@ -1,8 +1,14 @@
 name: Cargo Build & Test
 
 on:
-  push:
   pull_request:
+    branches:
+      - '*'
+  push:
+    branches:
+      - "master"
+    tags:
+      - "v*"
 
 env:
   CARGO_TERM_COLOR: always
@@ -17,8 +23,21 @@ jobs:
           - stable
           - beta
           - nightly
+        rmr_tag:
+          - 4.8.2
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Repository and Submodules
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - run: |
+          wget --content-disposition https://packagecloud.io/o-ran-sc/staging/packages/debian/stretch/rmr_${{ matrix.rmr_tag }}_amd64.deb/download.deb \
+            && sudo dpkg -i rmr_${{ matrix.rmr_tag }}_amd64.deb \
+            && rm -rf rmr_${{ matrix.rmr_tag }}_amd64.deb
+          wget --content-disposition https://packagecloud.io/o-ran-sc/staging/packages/debian/stretch/rmr-dev_${{ matrix.rmr_tag }}_amd64.deb/download.deb \
+            && sudo dpkg -i rmr-dev_${{ matrix.rmr_tag }}_amd64.deb \
+            && rm -rf rmr-dev_${{ matrix.rmr_tag }}_amd64.deb
+          sudo apt update && sudo apt install protobuf-compiler
       - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
       - run: cargo build --verbose
       - run: cargo test --verbose

@@ -2,5 +2,8 @@
 **/*.rs.bk
 
 # Added by cargo
-/target
-/Cargo.lock
+**/target
+**/Cargo.lock
+
+# Ignore the generated files
+test_route.rt.stash.inc
