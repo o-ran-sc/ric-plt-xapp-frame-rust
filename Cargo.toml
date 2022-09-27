@@ -1,9 +1,6 @@
-[package]
-name = "xapp-frame-rust"
-version = "0.1.0"
-edition = "2021"
-license = "Apache-2.0"
-description = "An Open-Source Framework for Rust-based xApps on the O-RAN Near-Realtime RIC"
-readme = "README.md"
-
-[dependencies]
+[workspace]
+members = [
+        "rmr",
+        "xapp",
+	"rnib",
+]
