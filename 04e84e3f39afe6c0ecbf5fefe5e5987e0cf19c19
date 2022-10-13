@@ -1,0 +1,8 @@
+Code-Review+1: Thoralf Czichy <thoralf.czichy@nokia.com>
+Code-Review+2: Bryan Russett <bryan@caur.us>
+Verified+1: Johannes Becker <johannes@caur.us>
+Submitted-by: Johannes Becker <johannes@caur.us>
+Submitted-at: Thu, 13 Oct 2022 14:39:38 +0000
+Reviewed-on: https://gerrit.o-ran-sc.org/r/c/ric-plt/xapp-frame-rust/+/9117
+Project: ric-plt/xapp-frame-rust
+Branch: refs/heads/master
