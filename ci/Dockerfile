@@ -1,4 +1,4 @@
-FROM rust:1.65-bullseye
+FROM rust:1.65-bullseye as xapp-base
 
 # libclang is a dependency of the bindgen crate. See https://internals.rust-lang.org/t/consider-shipping-libclang-with-rust-toolchain/12241
 RUN apt-get update && apt-get install -y libclang-dev
@@ -10,4 +10,25 @@ ARG RMRTAG=4.8.2
 RUN wget --content-disposition https://packagecloud.io/o-ran-sc/staging/packages/debian/stretch/rmr_${RMRTAG}_amd64.deb/download.deb && dpkg -i rmr_${RMRTAG}_amd64.deb && rm -rf rmr_${RMRTAG}_amd64.deb
 RUN wget --content-disposition https://packagecloud.io/o-ran-sc/staging/packages/debian/stretch/rmr-dev_${RMRTAG}_amd64.deb/download.deb && dpkg -i rmr-dev_${RMRTAG}_amd64.deb && rm -rf rmr-dev_${RMRTAG}_amd64.deb
 
-COPY entrypoint.sh /entrypoint.sh
+
+ENV PATH=/usr/local/cargo/bin:$PATH
+
+WORKDIR "/"
+CMD ["/bin/bash"]
+
+#----------------------------------------------------------
+#
+#----------------------------------------------------------
+
+FROM xapp-base as xapp-base-testbuild
+
+RUN mkdir -p /ws
+WORKDIR "/ws"
+
+# Copy
+COPY . /ws
+
+RUN cargo build 
+
+RUN cargo test
+
