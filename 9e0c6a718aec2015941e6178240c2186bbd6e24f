@@ -1,0 +1,8 @@
+Code-Review+1: Johannes Becker <johannes@caur.us>
+Code-Review+2: Bryan Russett <bryan@caur.us>
+Verified+1: Johannes Becker <johannes@caur.us>
+Submitted-by: Johannes Becker <johannes@caur.us>
+Submitted-at: Mon, 12 Dec 2022 16:12:24 +0000
+Reviewed-on: https://gerrit.o-ran-sc.org/r/c/ric-plt/xapp-frame-rust/+/10100
+Project: ric-plt/xapp-frame-rust
+Branch: refs/heads/master
