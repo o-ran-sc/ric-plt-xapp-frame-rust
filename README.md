@@ -17,6 +17,7 @@ This is a workspace project consisting of following crates -
 3. `examples` - (`examples` directory in above crates).
    examples inside individual crates. When our publishable version is ready, we'll have
    some more examples along the lines of other frameworks.
+4. `rnib` - A wrapper around the protobuf definitions in the `ric-plt/nodeb-rnib` repository.
 
 # Getting Started
 
@@ -33,6 +34,10 @@ This is an early implementation and is in active development, the current suppor
          wget --content-disposition https://packagecloud.io/o-ran-sc/staging/packages/debian/stretch/rmr-dev_${RMRTAG}_amd64.deb/download.deb && dpkg -i rmr-dev_${RMRTAG}_amd64.deb && rm -rf rmr-dev_${RMRTAG}_amd64.deb
 
    - Alternatively, follow the build instructions in the [RMR repository](https://gerrit.o-ran-sc.org/r/gitweb?p=ric-plt/lib/rmr.git;a=summary).
+3. Make sure that the external dependency inside `rnib` is satisfied as a `git submodule`. This adds the protobuf files inside `rnib/external/nodeb-rnib/` directory. The submodules can be updated by -
+
+         git submodule init
+         git submodule update
 
 ## Running Examples
 
