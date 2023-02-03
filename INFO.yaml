@@ -34,11 +34,11 @@ repositories:
     - ric-plt/xapp-frame-rust
 committers:
     - <<: *oran_ric_plt_xapp_frame_rust_ptl
-    - name: 'Johannes Becker'
-      email: 'johannes@caur.us'
-      company: 'caurus'
-      id: 'jkbecker'
-      timezone: 'America/New_York'
+    - name: 'Abhijit Gadgil'
+      email: 'gabhijit@iitbombay.org'
+      company: 'individual'
+      id: 'gabhijit'
+      timezone: 'Unknown/Unknown'
     - name: 'Bryan Russett'
       email: 'bryan@caur.us'
       company: 'caurus'
