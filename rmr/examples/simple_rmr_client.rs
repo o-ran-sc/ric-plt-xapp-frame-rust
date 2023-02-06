@@ -66,7 +66,7 @@ fn main() -> Result<(), std::io::Error> {
     processor.register_processor(60000, handle_pong_msg);
     let processor_thread = rmr::RMRProcessor::start(Arc::new(Mutex::new(processor)));
 
-    // Just wait for 5 seconds in main thread..
+    // Just wait for a few seconds in main thread..
     thread::sleep(Duration::from_secs(25));
 
     // This should stop the `receiver_thread` and should also stop the `processor_thread` after an
@@ -74,7 +74,6 @@ fn main() -> Result<(), std::io::Error> {
     is_running.store(false, Ordering::Relaxed);
 
     // Reuse the client - to receive data on the data_rx and do rmr_rts
-
     let receiver_result = receiver_thread.join();
     // TODO: Make sure how to handle processor result as well
     let _ = processor_thread.join();

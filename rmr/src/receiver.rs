@@ -85,7 +85,7 @@ impl RMRReceiver {
             drop(client);
 
             let event = epoll::Event::new(epoll::Events::EPOLLIN, rmr_fd.try_into().unwrap());
-            let _ = epoll::ctl(
+            epoll::ctl(
                 epoll_fd,
                 epoll::ControlOptions::EPOLL_CTL_ADD,
                 rmr_fd,

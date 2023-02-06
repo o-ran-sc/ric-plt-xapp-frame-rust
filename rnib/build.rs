@@ -17,12 +17,13 @@
 use std::env;
 use std::path::{Path, PathBuf};
 
-fn get_proto_files(dir: &Path) -> Vec<PathBuf> {
+fn get_proto_files<P: AsRef<Path>>(dir: P) -> Vec<PathBuf> {
     let paths = std::fs::read_dir(dir).unwrap();
     paths
-        .filter(|x| x.is_ok())
-        .filter(|x| x.as_ref().unwrap().path().extension().unwrap() == "proto")
-        .map(|r| r.unwrap().path())
+        // Removes Errors
+        .flatten()
+        .filter(|x| x.path().extension().unwrap() == "proto")
+        .map(|r| r.path())
         .collect()
 }
 
