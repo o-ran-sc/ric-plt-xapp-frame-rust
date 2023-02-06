@@ -1,7 +1,7 @@
 FROM rust:1.65-bullseye as xapp-base
 
 # libclang is a dependency of the bindgen crate. See https://internals.rust-lang.org/t/consider-shipping-libclang-with-rust-toolchain/12241
-RUN apt-get update && apt-get install -y libclang-dev
+RUN apt-get update && apt-get install -y libclang-dev protobuf-compiler
 
 ARG RMRTAG=4.8.2
 # Get RMR library from Packagecloud
@@ -28,7 +28,7 @@ WORKDIR "/ws"
 # Copy
 COPY . /ws
 
-RUN cargo build 
+RUN cargo build
 
 RUN cargo test
 
