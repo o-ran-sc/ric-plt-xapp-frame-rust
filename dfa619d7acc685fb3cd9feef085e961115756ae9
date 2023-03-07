@@ -67,6 +67,23 @@
       "message": "recheck",
       "revId": "dfa619d7acc685fb3cd9feef085e961115756ae9",
       "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "4d407a4b_e5608284",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 4
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1002108
+      },
+      "writtenOn": "2023-03-07T19:01:11Z",
+      "side": 1,
+      "message": "This change should be fixed with https://gerrit.o-ran-sc.org/r/c/ci-management/+/10689",
+      "revId": "dfa619d7acc685fb3cd9feef085e961115756ae9",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53"
     }
   ]
 }
