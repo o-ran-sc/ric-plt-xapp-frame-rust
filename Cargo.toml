@@ -3,4 +3,5 @@ members = [
         "rmr",
         "xapp",
 	"rnib",
+	"sdl",
 ]
