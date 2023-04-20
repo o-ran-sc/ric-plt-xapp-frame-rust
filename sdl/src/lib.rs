@@ -40,5 +40,8 @@ pub use api::DataMap;
 #[doc(inline)]
 pub use api::KeySet;
 
+#[doc(inline)]
+pub use api::ValueType;
+
 mod backends;
 pub use backends::RedisStorage;

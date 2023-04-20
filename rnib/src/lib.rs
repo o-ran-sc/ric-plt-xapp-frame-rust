@@ -14,6 +14,9 @@
 //   limitations under the License.
 // ==================================================================================
 
+mod reader;
+pub use reader::{RnibApi, RnibError};
+
 pub mod entities {
     include!(concat!(env!("OUT_DIR"), "/entities.rs"));
 }

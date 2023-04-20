@@ -22,7 +22,7 @@ use std::str::FromStr;
 
 use redis::Commands;
 
-use crate::{DataMap, KeySet, SdlError, SdlStorageApi};
+use crate::{DataMap, KeySet, SdlError, SdlStorageApi, ValueType};
 
 const SERVICE_HOST_NAME_ENV_VAR: &str = "DBAAS_SERVICE_HOST";
 const SERVICE_PORT_NAME_ENV_VAR: &str = "DBAAS_SERVICE_PORT";
@@ -281,6 +281,73 @@ impl SdlStorageApi for RedisStorage {
                 .collect::<Vec<String>>();
 
             Ok(KeySet::from_iter(db_keys.into_iter()))
+        }
+    }
+
+    fn add_member(
+        &mut self,
+        namespace: &str,
+        group: &str,
+        value: &ValueType,
+    ) -> Result<(), SdlError> {
+        let db = self.db_handle_for_ns(namespace);
+        if db.is_none() {
+            Err(SdlError::from(format!("Unable to get DB Handle.")))
+        } else {
+            let db = db.unwrap();
+            let set_name = Self::key_from_ns_and_key(namespace, group);
+            let _ = db
+                .sadd(set_name, value)
+                .map_err(|e| SdlError::from(e.to_string()))?;
+            Ok(())
+        }
+    }
+
+    fn delete_member(
+        &mut self,
+        namespace: &str,
+        group: &str,
+        value: &ValueType,
+    ) -> Result<(), SdlError> {
+        let db = self.db_handle_for_ns(namespace);
+        if db.is_none() {
+            Err(SdlError::from(format!("Unable to get DB Handle.")))
+        } else {
+            let db = db.unwrap();
+            let set_name = Self::key_from_ns_and_key(namespace, group);
+            let _ = db
+                .srem(set_name, value)
+                .map_err(|e| SdlError::from(e.to_string()))?;
+            Ok(())
+        }
+    }
+
+    fn get_members(&mut self, namespace: &str, group: &str) -> Result<Vec<Vec<u8>>, SdlError> {
+        let db = self.db_handle_for_ns(namespace);
+        if db.is_none() {
+            Err(SdlError::from(format!("Unable to get DB Handle.")))
+        } else {
+            let db = db.unwrap();
+            let set_name = Self::key_from_ns_and_key(namespace, group);
+            let members = db
+                .smembers(set_name)
+                .map_err(|e| SdlError::from(e.to_string()))?;
+            Ok(members)
+        }
+    }
+
+    fn del_group(&mut self, namespace: &str, group: &str) -> Result<(), SdlError> {
+        let db = self.db_handle_for_ns(namespace);
+        if db.is_none() {
+            Err(SdlError::from(format!("Unable to get DB Handle.")))
+        } else {
+            let db = db.unwrap();
+            let set_name = Self::key_from_ns_and_key(namespace, group);
+            let _ = db
+                .del::<_, ()>(set_name)
+                .map_err(|e| SdlError::from(e.to_string()))?;
+
+            Ok(())
         }
     }
 }
