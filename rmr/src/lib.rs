@@ -33,12 +33,3 @@ pub use error::RMRError;
 pub use mbuf::RMRMessageBuffer;
 pub use processor::{RMRProcessor, RMRProcessorFn};
 pub use receiver::RMRReceiver;
-
-#[cfg(test)]
-mod tests {
-
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}

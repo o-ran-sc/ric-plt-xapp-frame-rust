@@ -1,5 +1,6 @@
 // ==================================================================================
 //   Copyright (c) 2022 Caurus
+//   Copyright (c) 2023 Abhijit Gadgil
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -22,6 +23,8 @@ use std::thread::JoinHandle;
 
 use rmr::{RMRClient, RMRError, RMRProcessor, RMRProcessorFn, RMRReceiver};
 
+use sdl::RedisStorage;
+
 #[derive(Debug)]
 pub struct XAppError(String);
 
@@ -37,6 +40,8 @@ pub struct XApp {
 
     processor: Arc<Mutex<RMRProcessor>>,
     processor_thread: Option<JoinHandle<()>>,
+
+    _sdl_client: Arc<Mutex<RedisStorage>>,
 
     app_is_running: Arc<AtomicBool>,
 }
@@ -55,9 +60,12 @@ impl XApp {
         let receiver = RMRReceiver::new(receiver_client, data_tx, receiver_running);
         let processor = RMRProcessor::new(data_rx, processor_client, processor_running);
 
+        // Uses `DBAAS_SERVICE_HOST` and `DBAAS_SERVICE_PORT` env variables setup.
+        let sdl_client = RedisStorage::new_from_env().map_err(|e| XAppError(e.to_string()))?;
         Ok(Self {
             receiver: Arc::new(Mutex::new(receiver)),
             processor: Arc::new(Mutex::new(processor)),
+            _sdl_client: Arc::new(Mutex::new(sdl_client)),
             receiver_thread: None,
             processor_thread: None,
             app_is_running,
@@ -70,6 +78,7 @@ impl XApp {
             .lock()
             .expect("RMRProcessor Mutex in XApp corrupted");
         (*processor).register_processor(msgtype, handler);
+        log::debug!("Handler registered for message type: {}", msgtype);
     }
 
     pub fn start(&mut self) {
@@ -81,7 +90,7 @@ impl XApp {
 
         let processor_thread = RMRProcessor::start(Arc::clone(&self.processor));
         self.processor_thread = Some(processor_thread);
-        eprintln!("xapp started!");
+        log::info!("xapp started!");
     }
 
     pub fn join(&mut self) {

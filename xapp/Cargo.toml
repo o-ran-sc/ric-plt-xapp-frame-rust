@@ -13,4 +13,8 @@ publish = false
 
 [dependencies]
 serde_json = "1.0"
+log = "0.4"
+
+# These are our crates
 rmr = { path = "../rmr" }
+sdl = { path = "../sdl" }

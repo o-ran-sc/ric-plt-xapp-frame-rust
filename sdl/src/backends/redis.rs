@@ -22,7 +22,7 @@ use std::str::FromStr;
 
 use redis::Commands;
 
-use crate::{DataMap, KeySet, SdlError, SdlStorageApi};
+use crate::{DataMap, KeySet, SdlError, SdlStorageApi, ValueType};
 
 const SERVICE_HOST_NAME_ENV_VAR: &str = "DBAAS_SERVICE_HOST";
 const SERVICE_PORT_NAME_ENV_VAR: &str = "DBAAS_SERVICE_PORT";
@@ -33,6 +33,7 @@ const SERVICE_PORT_NAME_ENV_VAR: &str = "DBAAS_SERVICE_PORT";
 // - "DBAAS_SERVICE_CLUSTER_ADDR_LIST"
 
 // Internal structure holding a redis hostname and port used to connect to redis server.
+#[derive(Debug)]
 struct RedisHostPort {
     host: String,
     port: u16,
@@ -45,6 +46,12 @@ struct SdlRedisConfig {
 
 impl SdlRedisConfig {
     fn from_env() -> Result<Self, SdlError> {
+        if env::var(SERVICE_HOST_NAME_ENV_VAR).is_err() {
+            log::warn!("Environment variable `DBAAS_SERVICE_HOST` not set. Using default value for the host name 'dbaas'");
+        }
+        if env::var(SERVICE_PORT_NAME_ENV_VAR).is_err() {
+            log::warn!("Environment variable `DBAAS_SERVICE_PORT` not set. Using default value for the port number '6379'");
+        }
         let hostnames = env::var(SERVICE_HOST_NAME_ENV_VAR).unwrap_or("dbaas".to_string());
         let hostnames = hostnames
             .split(",")
@@ -65,10 +72,10 @@ impl SdlRedisConfig {
         }
 
         if ports.len() > hostnames.len() {
+            let err_str = "Redis Config: Specified ports should not be more than specified hosts.";
+            log::error!("{}", err_str);
             // Number of ports cannot be more than number of hostnames.
-            return Err(SdlError::from(
-                "Specified ports should not be more than specified hosts.".to_string(),
-            ));
+            return Err(SdlError::from(err_str.to_string()));
         } else {
             // Fill out the last port_number to make the ports count same as hostnames
             // This will typically happen with multiple hostnames and a single port number like the
@@ -89,6 +96,7 @@ impl SdlRedisConfig {
             for (host, port) in zip(hostnames, ports) {
                 host_ports.push(RedisHostPort { host, port });
             }
+            log::debug!("Created Redis SDL Config with: {:?}", host_ports);
             Ok(SdlRedisConfig { host_ports })
         }
     }
@@ -118,6 +126,7 @@ impl RedisStorage {
             let connect_string = format!("redis://{}:{}/", host_port.host, host_port.port);
             let client = redis::Client::open(connect_string);
             if client.is_err() {
+                log::error!("Redis Client Error: {}", client.as_ref().err().unwrap());
                 return Err(SdlError::from(format!(
                     "RedisClientError: {}",
                     client.err().unwrap()
@@ -139,13 +148,20 @@ impl RedisStorage {
         format!("{{{}}},{}", namespace, key)
     }
 
-    fn db_handle_for_ns(&mut self, namespace: &str) -> Option<&mut redis::Client> {
+    fn db_handle_for_ns(&mut self, namespace: &str) -> Result<&mut redis::Client, SdlError> {
         if self.dbs.is_empty() {
-            None
+            Err(SdlError::from("Not connected to any DB!".to_string()))
         } else {
             let id = crc32fast::hash(namespace.as_bytes());
             let bucket = id as usize % self.dbs.len();
-            self.dbs.get_mut(bucket)
+            let db_client = self.dbs.get_mut(bucket);
+            match db_client {
+                Some(client) => Ok(client),
+                None => Err(SdlError::from(format!(
+                    "DB handle for namespace: {} not found!",
+                    namespace
+                ))),
+            }
         }
     }
 }
@@ -163,19 +179,14 @@ impl SdlStorageApi for RedisStorage {
     }
 
     fn set(&mut self, namespace: &str, data: &DataMap) -> Result<(), SdlError> {
-        let db = self.db_handle_for_ns(namespace);
-        if db.is_none() {
-            Err(SdlError::from(format!("Unable to get DB Handle.")))
-        } else {
-            let db = db.unwrap();
-            let dataset = data
-                .iter()
-                .map(|(k, v)| (Self::key_from_ns_and_key(namespace, k), v))
-                .collect::<Vec<(String, _)>>();
+        let db = self.db_handle_for_ns(namespace)?;
+        let dataset = data
+            .iter()
+            .map(|(k, v)| (Self::key_from_ns_and_key(namespace, k), v))
+            .collect::<Vec<(String, _)>>();
 
-            db.mset::<_, _, ()>(&dataset)
-                .map_err(|e| SdlError::from(e.to_string()))
-        }
+        db.mset::<_, _, ()>(&dataset)
+            .map_err(|e| SdlError::from(e.to_string()))
     }
 
     fn set_if_not_exists(
@@ -184,103 +195,120 @@ impl SdlStorageApi for RedisStorage {
         key: &str,
         value: &[u8],
     ) -> Result<(), SdlError> {
-        let db = self.db_handle_for_ns(namespace);
-        if db.is_none() {
-            Err(SdlError::from(format!("Unable to get DB Handle.")))
-        } else {
-            let db = db.unwrap();
-            let value = db
-                .set_nx::<_, Vec<u8>, ()>(Self::key_from_ns_and_key(namespace, key), value.to_vec())
-                .map_err(|e| SdlError::from(e.to_string()))?;
+        let db = self.db_handle_for_ns(namespace)?;
+        let value = db
+            .set_nx::<_, Vec<u8>, ()>(Self::key_from_ns_and_key(namespace, key), value.to_vec())
+            .map_err(|e| SdlError::from(e.to_string()))?;
 
-            Ok(value)
-        }
+        Ok(value)
     }
 
     fn get(&mut self, namespace: &str, keys: &KeySet) -> Result<DataMap, SdlError> {
-        let db = self.db_handle_for_ns(namespace);
-        if db.is_none() {
-            Err(SdlError::from(format!("Unable to get DB Handle.")))
-        } else {
-            let db = db.unwrap();
-            let db_keys = keys
-                .iter()
-                .map(|k| Self::key_from_ns_and_key(namespace, k))
-                .collect::<Vec<String>>();
-            let db_values = db
-                .mget::<_, Vec<Vec<u8>>>(db_keys)
-                .map_err(|e| SdlError::from(e.to_string()))?;
+        let db = self.db_handle_for_ns(namespace)?;
+        let db_keys = keys
+            .iter()
+            .map(|k| Self::key_from_ns_and_key(namespace, k))
+            .collect::<Vec<String>>();
+        let db_values = db
+            .mget::<_, Vec<Vec<u8>>>(db_keys)
+            .map_err(|e| SdlError::from(e.to_string()))?;
 
-            let data_map = zip(keys, db_values).map(|(k, v)| (k.clone(), v)).collect();
-            Ok(data_map)
-        }
+        let data_map = zip(keys, db_values).map(|(k, v)| (k.clone(), v)).collect();
+        Ok(data_map)
     }
 
     fn delete(&mut self, namespace: &str, keys: &KeySet) -> Result<(), SdlError> {
-        let db = self.db_handle_for_ns(namespace);
-        if db.is_none() {
-            Err(SdlError::from(format!("Unable to get DB Handle.")))
-        } else {
-            let db = db.unwrap();
-            let db_keys = keys
-                .iter()
-                .map(|k| Self::key_from_ns_and_key(namespace, k))
-                .collect::<Vec<String>>();
-            let _ = db
-                .del::<_, ()>(db_keys)
-                .map_err(|e| SdlError::from(e.to_string()))?;
+        let db = self.db_handle_for_ns(namespace)?;
+        let db_keys = keys
+            .iter()
+            .map(|k| Self::key_from_ns_and_key(namespace, k))
+            .collect::<Vec<String>>();
+        let _ = db
+            .del::<_, ()>(db_keys)
+            .map_err(|e| SdlError::from(e.to_string()))?;
 
-            Ok(())
-        }
+        Ok(())
     }
 
     fn delete_all(&mut self, namespace: &str) -> Result<(), SdlError> {
-        let db = self.db_handle_for_ns(namespace);
-        if db.is_none() {
-            Err(SdlError::from(format!("Unable to get DB Handle.")))
-        } else {
-            let db = db.unwrap();
-            let all_keys_pattern = Self::key_from_ns_and_key(namespace, "*");
-            let db_keys = db
-                .scan_match(all_keys_pattern)
-                .map_err(|e| SdlError::from(e.to_string()))?
-                .collect::<Vec<String>>();
+        let db = self.db_handle_for_ns(namespace)?;
+        let all_keys_pattern = Self::key_from_ns_and_key(namespace, "*");
+        let db_keys = db
+            .scan_match(all_keys_pattern)
+            .map_err(|e| SdlError::from(e.to_string()))?
+            .collect::<Vec<String>>();
 
-            let _ = db
-                .del::<_, ()>(db_keys)
-                .map_err(|e| SdlError::from(e.to_string()))?;
+        let _ = db
+            .del::<_, ()>(db_keys)
+            .map_err(|e| SdlError::from(e.to_string()))?;
 
-            Ok(())
-        }
+        Ok(())
     }
 
     fn delete_if(&mut self, namespace: &str, key: &str, value: &[u8]) -> Result<bool, SdlError> {
-        let db = self.db_handle_for_ns(namespace);
-        if db.is_none() {
-            Err(SdlError::from(format!("Unable to get DB Handle.")))
-        } else {
-            let db = db.unwrap();
-            let stored_value = db
-                .get::<_, Vec<u8>>(Self::key_from_ns_and_key(namespace, key))
-                .map_err(|e| SdlError::from(e.to_string()))?;
+        let db = self.db_handle_for_ns(namespace)?;
+        let stored_value = db
+            .get::<_, Vec<u8>>(Self::key_from_ns_and_key(namespace, key))
+            .map_err(|e| SdlError::from(e.to_string()))?;
 
-            Ok(&stored_value == value)
-        }
+        Ok(&stored_value == value)
     }
 
     fn list_keys(&mut self, namespace: &str, pattern: &str) -> Result<KeySet, SdlError> {
-        let db = self.db_handle_for_ns(namespace);
-        if db.is_none() {
-            Err(SdlError::from(format!("Unable to get DB Handle.")))
-        } else {
-            let db = db.unwrap();
-            let keys_pattern = Self::key_from_ns_and_key(namespace, pattern);
-            let db_keys = db
-                .scan_match::<_, String>(keys_pattern)
-                .map_err(|e| SdlError::from(e.to_string()))?
-                .collect::<Vec<String>>();
+        let db = self.db_handle_for_ns(namespace)?;
+        let keys_pattern = Self::key_from_ns_and_key(namespace, pattern);
+        let db_keys = db
+            .scan_match::<_, String>(keys_pattern)
+            .map_err(|e| SdlError::from(e.to_string()))?
+            .collect::<Vec<String>>();
 
-            Ok(KeySet::from_iter(db_keys.into_iter()))
-        }
+        Ok(KeySet::from_iter(db_keys.into_iter()))
+    }
+
+    fn add_member(
+        &mut self,
+        namespace: &str,
+        group: &str,
+        value: &ValueType,
+    ) -> Result<(), SdlError> {
+        let db = self.db_handle_for_ns(namespace)?;
+        let set_name = Self::key_from_ns_and_key(namespace, group);
+        let _ = db
+            .sadd(set_name, value)
+            .map_err(|e| SdlError::from(e.to_string()))?;
+        Ok(())
+    }
+
+    fn delete_member(
+        &mut self,
+        namespace: &str,
+        group: &str,
+        value: &ValueType,
+    ) -> Result<(), SdlError> {
+        let db = self.db_handle_for_ns(namespace)?;
+        let set_name = Self::key_from_ns_and_key(namespace, group);
+        let _ = db
+            .srem(set_name, value)
+            .map_err(|e| SdlError::from(e.to_string()))?;
+        Ok(())
+    }
+
+    fn get_members(&mut self, namespace: &str, group: &str) -> Result<Vec<Vec<u8>>, SdlError> {
+        let db = self.db_handle_for_ns(namespace)?;
+        let set_name = Self::key_from_ns_and_key(namespace, group);
+        let members = db
+            .smembers(set_name)
+            .map_err(|e| SdlError::from(e.to_string()))?;
+        Ok(members)
+    }
+
+    fn del_group(&mut self, namespace: &str, group: &str) -> Result<(), SdlError> {
+        let db = self.db_handle_for_ns(namespace)?;
+        let set_name = Self::key_from_ns_and_key(namespace, group);
+        let _ = db
+            .del::<_, ()>(set_name)
+            .map_err(|e| SdlError::from(e.to_string()))?;
+
+        Ok(())
     }
 }

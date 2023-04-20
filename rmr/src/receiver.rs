@@ -71,7 +71,7 @@ impl RMRReceiver {
                     thread::sleep(Duration::from_secs(1));
                 }
             }
-            eprintln!("RMR Client Ready!");
+            log::info!("RMR Client Ready!");
             // Setup the  Epoll poller for the recvfd.
             let epoll_fd = epoll::create(false).expect("Epoll Create Failed!");
 
@@ -110,7 +110,7 @@ impl RMRReceiver {
                 drop(client);
 
                 let msg_buffer = RMRMessageBuffer::new(recv_mbuf);
-                eprintln!(
+                log::debug!(
                     "state: {}, length: {}, payload_size: {}",
                     msg_buffer.get_state(),
                     msg_buffer.get_length(),

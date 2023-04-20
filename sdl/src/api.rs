@@ -23,6 +23,8 @@ pub type KeySet = std::collections::BTreeSet<String>;
 
 pub type DataMap = std::collections::HashMap<String, Vec<u8>>;
 
+pub type ValueType = Vec<u8>;
+
 /// `SdlError`: Error structure used by the `SdlStorageApi` functions.
 #[derive(Debug)]
 pub struct SdlError(String);
@@ -101,4 +103,26 @@ pub trait SdlStorageApi {
 
     /// Delete all Keys from the SDL Storage
     fn delete_all(&mut self, namespace: &str) -> Result<(), SdlError>;
+
+    /// Add Member to a group. No change in the group if the member already exists
+    fn add_member(
+        &mut self,
+        namespace: &str,
+        group: &str,
+        value: &ValueType,
+    ) -> Result<(), SdlError>;
+
+    /// Delete a member from a group.
+    fn delete_member(
+        &mut self,
+        namespace: &str,
+        group: &str,
+        value: &ValueType,
+    ) -> Result<(), SdlError>;
+
+    /// Get All members of a group
+    fn get_members(&mut self, namespace: &str, group: &str) -> Result<Vec<Vec<u8>>, SdlError>;
+
+    /// Delete a group
+    fn del_group(&mut self, namespace: &str, group: &str) -> Result<(), SdlError>;
 }
