@@ -22,6 +22,8 @@ use std::sync::{
 };
 use std::thread;
 
+use rnib::RnibApi;
+
 use sdl::SdlStorageApi;
 
 static TEST_REDIS_SERVER_STARTED: AtomicU8 = AtomicU8::new(0_u8);
@@ -106,6 +108,63 @@ fn sdl_client_can_set_get() {
         value,
         sdl::DataMap::from([("hello".to_string(), b"world".to_vec())])
     );
+
+    stop_test_redis_server();
+}
+
+#[test]
+fn sdl_client_group_add_delete_members() {
+    start_test_redis_server();
+
+    let sdl_client = sdl::RedisStorage::new_from_env();
+    assert!(sdl_client.is_ok(), "{:#?}", sdl_client.err());
+
+    let mut sdl_client = sdl_client.unwrap();
+    let value = "bar".as_bytes().to_vec();
+
+    let result = sdl_client.add_member("group-tests", "foo", &value);
+    assert!(result.is_ok());
+
+    let result = sdl_client.get_members("group-tests", "foo");
+    assert!(result.is_ok());
+
+    let result = result.unwrap();
+    let expected = vec!["bar".as_bytes()];
+    assert_eq!(
+        result, expected,
+        "Expected: {:?}, Found: {:?}",
+        expected, result
+    );
+
+    let result = sdl_client.delete_member("group-tests", "foo", &"bar".as_bytes().to_vec());
+    assert!(result.is_ok());
+
+    let result = sdl_client.get_members("group-tests", "foo");
+    assert!(result.is_ok());
+
+    let result = result.unwrap();
+    let expected: Vec<Vec<u8>> = vec![];
+    assert_eq!(
+        result, expected,
+        "Expected: {:?}, Found: {:?}",
+        expected, result
+    );
+
+    stop_test_redis_server();
+}
+
+#[test]
+fn rnib_empty_group_members() {
+    start_test_redis_server();
+
+    let sdl_client = sdl::RedisStorage::new_from_env();
+    assert!(sdl_client.is_ok(), "{:#?}", sdl_client.err());
+
+    let mut sdl_client = sdl_client.unwrap();
+    let gnbs = sdl_client.get_gnb_ids();
+    assert!(gnbs.is_ok());
+    let gnbs = gnbs.unwrap();
+    assert!(gnbs.is_empty());
 
     stop_test_redis_server();
 }
