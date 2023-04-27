@@ -59,7 +59,7 @@ impl RMRReceiver {
     pub fn start(this: Arc<Mutex<Self>>) -> JoinHandle<Result<(), RMRError>> {
         let mut _counter = 0;
         thread::spawn(move || {
-            log::error!("Starting receiver thread!");
+            log::info!("Starting receiver thread!");
             let receiver = this.lock().expect("RMRReceiver Lock Corrupted.");
             //Wait for RMR to be Ready first
             loop {
@@ -71,6 +71,11 @@ impl RMRReceiver {
                     log::warn!("Waiting for RMR Client to be ready!");
                     _counter += 1;
                     thread::sleep(Duration::from_secs(1));
+                }
+
+                if !receiver.is_running.load(Ordering::Relaxed) {
+                    log::error!("RMR Not Yet Ready, Receiverd stopped!");
+                    return Err(RMRError);
                 }
             }
             log::info!("RMR Client Ready!");
