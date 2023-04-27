@@ -105,9 +105,9 @@ impl XApp {
 
         if self.processor_thread.is_some() {
             let processor_thread = self.processor_thread.take();
-            log::debug!("Waiting for Receiver thread to join!");
+            log::debug!("Waiting for Processor thread to join!");
             let _ = processor_thread.unwrap().join();
-            log::debug!("Receiver thread joined!");
+            log::debug!("Processor thread joined!");
         }
     }
 
