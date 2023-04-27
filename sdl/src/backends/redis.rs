@@ -17,7 +17,7 @@
 //! Redis SDL Backend
 
 use std::env;
-use std::iter::zip;
+use std::iter::{zip, FromIterator};
 use std::str::FromStr;
 
 use redis::Commands;

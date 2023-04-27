@@ -59,6 +59,7 @@ impl RMRReceiver {
     pub fn start(this: Arc<Mutex<Self>>) -> JoinHandle<Result<(), RMRError>> {
         let mut _counter = 0;
         thread::spawn(move || {
+            log::error!("Starting receiver thread!");
             let receiver = this.lock().expect("RMRReceiver Lock Corrupted.");
             //Wait for RMR to be Ready first
             loop {
@@ -67,6 +68,7 @@ impl RMRReceiver {
                     break;
                 } else {
                     //TODO: Log
+                    log::warn!("Waiting for RMR Client to be ready!");
                     _counter += 1;
                     thread::sleep(Duration::from_secs(1));
                 }
@@ -94,8 +96,11 @@ impl RMRReceiver {
             .expect("Epoll ctl failed");
 
             loop {
+                if !receiver.is_running.load(Ordering::Relaxed) {
+                    break;
+                }
                 let mut events = [epoll::Event::new(epoll::Events::empty(), 0); 1];
-                let result = epoll::wait(epoll_fd, -1, &mut events).expect("Epoll Wait Failed");
+                let result = epoll::wait(epoll_fd, 1000, &mut events).expect("Epoll Wait Failed");
                 if result == 0 {
                     continue;
                 }
@@ -117,10 +122,8 @@ impl RMRReceiver {
                     msg_buffer.get_payload_size()
                 );
                 let _ = receiver.data_tx.send(RMRMessageBuffer::new(recv_mbuf));
-                if !receiver.is_running.load(Ordering::Relaxed) {
-                    break;
-                }
             }
+            log::info!("Receiver thread stopped!");
             Ok(())
         })
     }

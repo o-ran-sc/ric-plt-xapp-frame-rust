@@ -25,13 +25,18 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Receiver;
 use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
+use std::time::Duration;
 
 use crate::{RMRClient, RMRError, RMRMessageBuffer};
 
 pub type RMRProcessorFn =
     fn(msg: &mut RMRMessageBuffer, client: &RMRClient) -> Result<(), RMRError>;
 
-fn default_processor_fn(_msg: &mut RMRMessageBuffer, _client: &RMRClient) -> Result<(), RMRError> {
+fn default_processor_fn(msg: &mut RMRMessageBuffer, _client: &RMRClient) -> Result<(), RMRError> {
+    log::debug!(
+        "Default processor function called for MessageType: {}",
+        msg.msgtype
+    );
     Ok(())
 }
 
@@ -72,16 +77,16 @@ impl RMRProcessor {
     pub fn start(this: Arc<Mutex<Self>>) -> JoinHandle<()> {
         thread::spawn(move || loop {
             let processor = this.lock().expect("RMRProcessor Mutex Corrupted.");
-            match processor.data_rx.recv() {
+            match processor.data_rx.recv_timeout(Duration::from_millis(1000)) {
                 Ok(m) => processor.process_msg(m),
-                Err(recv_error) => {
-                    println!("Err: {:?}, stopping processor...", recv_error);
-                    processor.is_running.store(false, Ordering::Relaxed);
+                Err(timeout) => {
+                    log::trace!("timeoout in processor thread: {:?}", timeout);
                 }
             }
             if !processor.is_running.load(Ordering::Relaxed) {
                 break;
             }
+            log::info!("Processor thread stopped!");
         })
     }
 

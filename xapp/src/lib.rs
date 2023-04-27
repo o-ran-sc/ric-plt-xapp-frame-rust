@@ -98,16 +98,22 @@ impl XApp {
         //
         if self.receiver_thread.is_some() {
             let receiver_thread = self.receiver_thread.take();
+            log::debug!("Waiting for Receiver thread to join!");
             let _ = receiver_thread.unwrap().join();
+            log::debug!("Receiver thread joined!");
         }
 
         if self.processor_thread.is_some() {
             let processor_thread = self.processor_thread.take();
+            log::debug!("Waiting for Receiver thread to join!");
             let _ = processor_thread.unwrap().join();
+            log::debug!("Receiver thread joined!");
         }
     }
 
     pub fn stop(&self) {
+        log::info!("Stopping XApp!");
+
         self.app_is_running.store(false, Ordering::Relaxed);
     }
 }
