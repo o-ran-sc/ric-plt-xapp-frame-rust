@@ -25,6 +25,8 @@ FROM xapp-base as xapp-base-testbuild
 RUN mkdir -p /ws
 WORKDIR "/ws"
 
+RUN ldconfig
+
 # Copy
 COPY . /ws
 

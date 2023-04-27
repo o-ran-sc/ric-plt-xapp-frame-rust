@@ -75,16 +75,18 @@ impl RMRProcessor {
     ///
     /// Upon an error on the `data_rx` channel, returns from the thread.
     pub fn start(this: Arc<Mutex<Self>>) -> JoinHandle<()> {
-        thread::spawn(move || loop {
-            let processor = this.lock().expect("RMRProcessor Mutex Corrupted.");
-            match processor.data_rx.recv_timeout(Duration::from_millis(1000)) {
-                Ok(m) => processor.process_msg(m),
-                Err(timeout) => {
-                    log::trace!("timeoout in processor thread: {:?}", timeout);
+        thread::spawn(move || {
+            loop {
+                let processor = this.lock().expect("RMRProcessor Mutex Corrupted.");
+                match processor.data_rx.recv_timeout(Duration::from_millis(1000)) {
+                    Ok(m) => processor.process_msg(m),
+                    Err(timeout) => {
+                        log::trace!("timeoout in processor thread: {:?}", timeout);
+                    }
                 }
-            }
-            if !processor.is_running.load(Ordering::Relaxed) {
-                break;
+                if !processor.is_running.load(Ordering::Relaxed) {
+                    break;
+                }
             }
             log::info!("Processor thread stopped!");
         })
