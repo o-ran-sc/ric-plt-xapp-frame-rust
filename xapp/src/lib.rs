@@ -34,6 +34,11 @@ impl std::fmt::Display for XAppError {
     }
 }
 
+/// The main XApp structure
+///
+/// An application using this structure, should create an instance of this structure and use this
+/// instance during the application. This is a wrapper structure over underlying RMR, SDL and RNIB
+/// APIs of the RIC platform.
 pub struct XApp {
     receiver: Arc<Mutex<RMRReceiver>>,
     receiver_thread: Option<JoinHandle<Result<(), RMRError>>>,
@@ -47,6 +52,10 @@ pub struct XApp {
 }
 
 impl XApp {
+    /// Create a new XApp struct.
+    ///
+    /// This is the main structure for the SDK. All Xapp actions will typically be performed with a
+    /// handle to this structure.
     pub fn new(rmr_port: &str, rmr_flags: u32) -> Result<Self, XAppError> {
         let client = RMRClient::new(rmr_port, RMRClient::RMR_MAX_RCV_BYTES, rmr_flags)?;
         let receiver_client = Arc::new(Mutex::new(client));
@@ -72,6 +81,9 @@ impl XApp {
         })
     }
 
+    /// Register an RMR Message handler function.
+    ///
+    /// The registered function will perform all RMR processing.
     pub fn register_handler(&self, msgtype: i32, handler: RMRProcessorFn) {
         let mut processor = self
             .processor
@@ -81,6 +93,24 @@ impl XApp {
         log::debug!("Handler registered for message type: {}", msgtype);
     }
 
+    /// Start the application
+    ///
+    /// Starts the RMR receiver and processor threads for the application. An xApp should call this
+    /// function to start running the application, after registering any RMR message handlers.
+    ///
+    /// ```ignore
+    /// fn rmr_message_logger_handler(...) {
+    /// ...
+    /// }
+    ///
+    /// ...
+    /// let mut xapp = Xapp::new(...);
+    ///
+    /// xapp.register_hanlder(10000, rmr_message_logger_handler);
+    ///
+    /// xapp.start();
+    /// ...
+    /// ```
     pub fn start(&mut self) {
         // Mark: App is running to be true.
         self.app_is_running.store(true, Ordering::Relaxed);
@@ -93,6 +123,7 @@ impl XApp {
         log::info!("xapp started!");
     }
 
+    /// Join the application threads.
     pub fn join(&mut self) {
         // Make sure that both the threads are stopped.
         //
@@ -109,6 +140,28 @@ impl XApp {
             let _ = processor_thread.unwrap().join();
             log::debug!("Processor thread joined!");
         }
+    }
+
+    /// Check if RMR is ready!
+    ///
+    /// An application should use this function to wait for the RMR to be ready before going ahead
+    /// with other application
+    ///
+    /// ```ignore
+    /// ...
+    /// let xapp = Xapp::new(...);
+    ///
+    /// loop {
+    ///     if xapp.is_rmr_ready() {
+    ///         break;
+    ///     }
+    /// }
+    ///
+    /// // Do Ready processing
+    ///```
+    pub fn is_rmr_ready(&self) -> bool {
+        let receiver = self.receiver.clone();
+        RMRReceiver::is_ready(receiver)
     }
 
     pub fn stop(&self) {

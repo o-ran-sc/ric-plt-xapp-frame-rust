@@ -60,25 +60,31 @@ impl RMRReceiver {
         let mut _counter = 0;
         thread::spawn(move || {
             log::info!("Starting receiver thread!");
-            let receiver = this.lock().expect("RMRReceiver Lock Corrupted.");
             //Wait for RMR to be Ready first
             loop {
+                let receiver = this.lock().expect("RMRReceiver Lock Corrupted.");
                 let client = receiver.client.lock().expect("RMR ContextMutex Corrupted");
                 if client.is_ready() {
+                    drop(client);
+                    drop(receiver);
                     break;
                 } else {
-                    //TODO: Log
                     log::warn!("Waiting for RMR Client to be ready!");
                     _counter += 1;
+                    drop(client);
+                    drop(receiver);
                     thread::sleep(Duration::from_secs(1));
                 }
 
+                let receiver = this.lock().expect("RMRReceiver Lock Corrupted.");
                 if !receiver.is_running.load(Ordering::Relaxed) {
                     log::error!("RMR Not Yet Ready, Receiverd stopped!");
                     return Err(RMRError);
                 }
             }
             log::info!("RMR Client Ready!");
+
+            let receiver = this.lock().expect("RMRReceiver Lock Corrupted.");
             // Setup the  Epoll poller for the recvfd.
             let epoll_fd = epoll::create(false).expect("Epoll Create Failed!");
 
@@ -90,6 +96,7 @@ impl RMRReceiver {
                 .get_recv_fd()
                 .expect("RMR Context Get Receive FD failed.");
             drop(client);
+            drop(receiver);
 
             let event = epoll::Event::new(epoll::Events::EPOLLIN, rmr_fd.try_into().unwrap());
             epoll::ctl(
@@ -101,15 +108,19 @@ impl RMRReceiver {
             .expect("Epoll ctl failed");
 
             loop {
+                let receiver = this.lock().expect("RMRReceiver Lock Corrupted.");
                 if !receiver.is_running.load(Ordering::Relaxed) {
                     break;
                 }
+                drop(receiver);
+
                 let mut events = [epoll::Event::new(epoll::Events::empty(), 0); 1];
                 let result = epoll::wait(epoll_fd, 1000, &mut events).expect("Epoll Wait Failed");
                 if result == 0 {
                     continue;
                 }
 
+                let receiver = this.lock().expect("RMRReceiver Lock Corrupted.");
                 let client = receiver
                     .client
                     .lock()
@@ -131,5 +142,17 @@ impl RMRReceiver {
             log::info!("Receiver thread stopped!");
             Ok(())
         })
+    }
+
+    pub fn is_ready(this: Arc<Mutex<Self>>) -> bool {
+        log::trace!("trying receiver lock!");
+        let receiver = this.lock().expect("RMRReceiver Lock Corrupted.");
+        log::trace!("receiver obtained!");
+        let client = receiver
+            .client
+            .lock()
+            .expect("RMR Context mutex corrupted.");
+        log::trace!("client obtained!");
+        client.is_ready()
     }
 }
