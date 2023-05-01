@@ -111,6 +111,11 @@ impl XApp {
         }
     }
 
+    pub fn is_rmr_ready(&self) -> bool {
+        let receiver = self.receiver.clone();
+        RMRReceiver::is_ready(receiver)
+    }
+
     pub fn stop(&self) {
         log::info!("Stopping XApp!");
 
