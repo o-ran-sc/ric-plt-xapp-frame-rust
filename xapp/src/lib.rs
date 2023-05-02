@@ -23,6 +23,7 @@ use std::thread::JoinHandle;
 
 use rmr::{RMRClient, RMRError, RMRProcessor, RMRProcessorFn, RMRReceiver};
 
+use rnib::{entities::NbIdentity, RnibApi, RnibError};
 use sdl::RedisStorage;
 
 #[derive(Debug)]
@@ -46,7 +47,7 @@ pub struct XApp {
     processor: Arc<Mutex<RMRProcessor>>,
     processor_thread: Option<JoinHandle<()>>,
 
-    _sdl_client: Arc<Mutex<RedisStorage>>,
+    sdl_client: Arc<Mutex<RedisStorage>>,
 
     app_is_running: Arc<AtomicBool>,
 }
@@ -74,7 +75,7 @@ impl XApp {
         Ok(Self {
             receiver: Arc::new(Mutex::new(receiver)),
             processor: Arc::new(Mutex::new(processor)),
-            _sdl_client: Arc::new(Mutex::new(sdl_client)),
+            sdl_client: Arc::new(Mutex::new(sdl_client)),
             receiver_thread: None,
             processor_thread: None,
             app_is_running,
@@ -164,10 +165,17 @@ impl XApp {
         RMRReceiver::is_ready(receiver)
     }
 
+    /// Stop the XApp
     pub fn stop(&self) {
         log::info!("Stopping XApp!");
 
         self.app_is_running.store(false, Ordering::Relaxed);
+    }
+
+    /// Get Nodeb IDs using RNIB API
+    pub fn rnib_get_nodeb_ids(&self) -> Result<Vec<NbIdentity>, XAppError> {
+        let mut client = self.sdl_client.lock().expect(" SDL Client Lock currupted!");
+        client.get_nodeb_ids().map_err(|e| e.into())
     }
 }
 
@@ -180,5 +188,11 @@ impl From<XAppError> for std::io::Error {
 impl From<RMRError> for XAppError {
     fn from(_r: RMRError) -> Self {
         XAppError("RMRError".to_string())
+    }
+}
+
+impl From<RnibError> for XAppError {
+    fn from(r: RnibError) -> Self {
+        XAppError(format!("RNIB Error: {}", r.to_string()))
     }
 }

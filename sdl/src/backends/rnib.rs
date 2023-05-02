@@ -55,7 +55,10 @@ impl RnibApi for RedisStorage {
     }
 
     fn get_nodeb_ids(&mut self) -> Result<Vec<NbIdentity>, RnibError> {
-        todo!();
+        let mut nbids = self.get_enb_ids()?;
+        nbids.extend(self.get_gnb_ids()?);
+
+        Ok(nbids)
     }
 
     fn get_ran_load_info(&mut self, _inventory: &str) -> Result<RanLoadInformation, RnibError> {
