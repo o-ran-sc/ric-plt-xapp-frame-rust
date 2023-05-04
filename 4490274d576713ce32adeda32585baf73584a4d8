@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "f734777e_b2e4c00c",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1002067
+      },
+      "writtenOn": "2023-05-04T00:45:59Z",
+      "side": 1,
+      "message": "No more `deref`ing raw pointer received from the user. test for new API and documentation for parts that are `unsafe`.",
+      "revId": "4490274d576713ce32adeda32585baf73584a4d8",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53"
+    }
+  ]
+}
