@@ -21,6 +21,8 @@
 //!
 use std::convert::TryInto;
 
+use crate::RMRClient;
+
 use super::rmr_int;
 
 type RMRMBuf = *mut rmr_int::rmr_mbuf_t;
@@ -33,22 +35,29 @@ pub struct RMRMessageBuffer {
 }
 
 impl RMRMessageBuffer {
-    pub fn new(buff: RMRMBuf) -> Self {
-        unsafe {
-            Self {
-                msgtype: (*buff).mtype,
-                buff,
-            }
+    /// Allocate a new Buffer using the `RMRClient`
+    pub fn new(client: &RMRClient) -> Self {
+        let buff = client.alloc_msg().expect("Alloc Message Failed!");
+        Self { msgtype: -1, buff }
+    }
+
+    pub(crate) fn from_buf(buff: RMRMBuf, mtype: i32) -> Self {
+        Self {
+            msgtype: mtype,
+            buff,
         }
     }
 
-    pub(crate) fn free(&self) {
+    pub fn free(&self) {
         unsafe {
             rmr_int::rmr_free_msg(self.buff);
         }
     }
 
     pub fn set_payload(&mut self, payload: &[u8]) {
+        // Safety: self.buff is a valid pointer. This is because, the structure can only be created
+        // through internal function calls where we can guarantee as implementors that the pointers
+        // passed to the `new` is a valid one.
         unsafe {
             // TODO: Use this to potentially 'realloc' the buffer.
             let _max_size = rmr_int::rmr_payload_size(self.buff);
@@ -59,24 +68,39 @@ impl RMRMessageBuffer {
     }
 
     pub fn set_mtype(&mut self, mtype: i32) {
+        // Safety: self.buff is a valid pointer. This is because, the structure can only be created
+        // through internal function calls where we can guarantee as implementors that the pointers
+        // passed to the `new` is a valid one.
         unsafe {
             (*self.buff).mtype = mtype;
         }
     }
 
     pub fn get_state(&self) -> i32 {
+        // Safety: self.buff is a valid pointer. This is because, the structure can only be created
+        // through internal function calls where we can guarantee as implementors that the pointers
+        // passed to the `new` is a valid one.
         unsafe { (*self.buff).state }
     }
 
     pub fn get_length(&self) -> i32 {
+        // Safety: self.buff is a valid pointer. This is because, the structure can only be created
+        // through internal function calls where we can guarantee as implementors that the pointers
+        // passed to the `new` is a valid one.
         unsafe { (*self.buff).len }
     }
 
     pub fn get_payload_size(&self) -> i32 {
+        // Safety: self.buff is a valid pointer. This is because, the structure can only be created
+        // through internal function calls where we can guarantee as implementors that the pointers
+        // passed to the `new` is a valid one.
         unsafe { rmr_int::rmr_payload_size(self.buff) }
     }
 
     pub fn get_payload(&self) -> &[u8] {
+        // Safety: self.buff is a valid pointer. This is because, the structure can only be created
+        // through internal function calls where we can guarantee as implementors that the pointers
+        // passed to the `new` is a valid one.
         unsafe {
             let size = (*self.buff).len as usize;
             std::slice::from_raw_parts((*self.buff).payload, size)

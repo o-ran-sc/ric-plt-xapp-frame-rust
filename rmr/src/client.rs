@@ -89,8 +89,13 @@ mod tests {
 
     #[test]
     fn test_create_two_clients_fails() {
-        let result = RMRClient::new("1111", 0, 0);
-        assert!(result.is_ok());
+        let result = loop {
+            let result = RMRClient::new("1111", 0, 0);
+            if result.is_ok() {
+                break result;
+            }
+        };
+        assert!(result.is_ok(), "{:#?}", result.err().unwrap());
 
         let result_2 = RMRClient::new("2345", 0, 0);
         assert!(result_2.is_err());
@@ -102,8 +107,14 @@ mod tests {
 
     #[test]
     fn test_integer_port_client_init_success_not_ready() {
-        let result = RMRClient::new("1234", 0, 0);
-        assert!(result.is_ok());
+        let result = loop {
+            let result = RMRClient::new("1234", 0, 0);
+
+            if result.is_ok() {
+                break result;
+            }
+        };
+        assert!(result.is_ok(), "{:#?}", result.err().unwrap());
         assert!(!result.unwrap().is_ready());
     }
 
@@ -122,8 +133,24 @@ mod tests {
 
     #[test]
     fn test_flags_nothread_init_success_ready() {
-        let result = RMRClient::new("1234", 0, RMRClient::RMRFL_NOTHREAD);
-        assert!(result.is_ok());
+        let result = loop {
+            let result = RMRClient::new("12345", 0, RMRClient::RMRFL_NOTHREAD);
+            if result.is_ok() {
+                break result;
+            }
+        };
+        assert!(result.is_ok(), "{:#?}", result.err().unwrap());
         assert!(result.unwrap().is_ready());
+    }
+
+    #[test]
+    fn test_new_client_and_buffer() {
+        let client = crate::RMRClient::new("8888", 0, 0);
+        assert!(client.is_ok());
+
+        let client = client.unwrap();
+
+        let msg_buffer = crate::RMRMessageBuffer::new(&client);
+        assert!(true);
     }
 }

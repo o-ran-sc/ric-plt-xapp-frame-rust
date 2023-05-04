@@ -130,14 +130,16 @@ impl RMRReceiver {
                 // We don't need the client anymore - let someone else get it if they want it.
                 drop(client);
 
-                let msg_buffer = RMRMessageBuffer::new(recv_mbuf);
-                log::debug!(
-                    "state: {}, length: {}, payload_size: {}",
-                    msg_buffer.get_state(),
-                    msg_buffer.get_length(),
-                    msg_buffer.get_payload_size()
-                );
-                let _ = receiver.data_tx.send(RMRMessageBuffer::new(recv_mbuf));
+                unsafe {
+                    let msg_buffer = RMRMessageBuffer::from_buf(recv_mbuf, (*recv_mbuf).mtype);
+                    log::debug!(
+                        "state: {}, length: {}, payload_size: {}",
+                        msg_buffer.get_state(),
+                        msg_buffer.get_length(),
+                        msg_buffer.get_payload_size()
+                    );
+                    let _ = receiver.data_tx.send(msg_buffer);
+                }
             }
             log::info!("Receiver thread stopped!");
             Ok(())

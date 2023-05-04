@@ -49,7 +49,7 @@ fn main() {
 
     xapp.start();
 
-    std::thread::sleep(Duration::from_secs(10));
+    std::thread::sleep(Duration::from_secs(10000));
 
     xapp.stop();
 
