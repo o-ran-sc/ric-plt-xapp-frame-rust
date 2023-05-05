@@ -193,6 +193,6 @@ impl From<RMRError> for XAppError {
 
 impl From<RnibError> for XAppError {
     fn from(r: RnibError) -> Self {
-        XAppError(format!("RNIB Error: {}", r.to_string()))
+        XAppError(format!("RNIB Error: {}", r))
     }
 }

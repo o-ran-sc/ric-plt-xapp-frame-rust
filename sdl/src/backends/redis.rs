@@ -52,20 +52,20 @@ impl SdlRedisConfig {
         if env::var(SERVICE_PORT_NAME_ENV_VAR).is_err() {
             log::warn!("Environment variable `DBAAS_SERVICE_PORT` not set. Using default value for the port number '6379'");
         }
-        let hostnames = env::var(SERVICE_HOST_NAME_ENV_VAR).unwrap_or("dbaas".to_string());
+        let hostnames = env::var(SERVICE_HOST_NAME_ENV_VAR).unwrap_or_else(|_| "dbaas".to_string());
         let hostnames = hostnames
-            .split(",")
+            .split(',')
             .map(|v| v.to_string())
             .collect::<Vec<String>>();
         let mut parse_errors = vec![];
         let mut ports = env::var(SERVICE_PORT_NAME_ENV_VAR)
-            .unwrap_or("6379".to_string())
-            .split(",")
+            .unwrap_or_else(|_| "6379".to_string())
+            .split(',')
             .map(u16::from_str)
             .inspect(|x| parse_errors.extend(x.clone().err()))
             .filter_map(Result::ok)
             .collect::<Vec<u16>>();
-        if parse_errors.len() > 0 {
+        if !parse_errors.is_empty() {
             return Err(SdlError::from(
                 "Port Numbers should be integer.".to_string(),
             ));
@@ -75,13 +75,13 @@ impl SdlRedisConfig {
             let err_str = "Redis Config: Specified ports should not be more than specified hosts.";
             log::error!("{}", err_str);
             // Number of ports cannot be more than number of hostnames.
-            return Err(SdlError::from(err_str.to_string()));
+            Err(SdlError::from(err_str.to_string()))
         } else {
             // Fill out the last port_number to make the ports count same as hostnames
             // This will typically happen with multiple hostnames and a single port number like the
             // default port no. 6379.
             let mut remaining = hostnames.len() - ports.len();
-            let last_portnum = ports.get(ports.len() - 1).unwrap();
+            let last_portnum = ports.last().unwrap();
             let last_portnum = *last_portnum;
             loop {
                 if remaining == 0 {
@@ -89,7 +89,7 @@ impl SdlRedisConfig {
                 }
 
                 ports.push(last_portnum);
-                remaining = remaining - 1;
+                remaining -= 1;
             }
 
             let mut host_ports = vec![];
@@ -172,7 +172,7 @@ impl SdlStorageApi for RedisStorage {
             self.is_ready
         } else {
             let result = self.list_keys(namespace, "*");
-            self.is_ready = !result.is_err();
+            self.is_ready = result.is_ok();
 
             self.is_ready
         }
@@ -196,11 +196,10 @@ impl SdlStorageApi for RedisStorage {
         value: &[u8],
     ) -> Result<(), SdlError> {
         let db = self.db_handle_for_ns(namespace)?;
-        let value = db
-            .set_nx::<_, Vec<u8>, ()>(Self::key_from_ns_and_key(namespace, key), value.to_vec())
+        db.set_nx::<_, Vec<u8>, ()>(Self::key_from_ns_and_key(namespace, key), value.to_vec())
             .map_err(|e| SdlError::from(e.to_string()))?;
 
-        Ok(value)
+        Ok(())
     }
 
     fn get(&mut self, namespace: &str, keys: &KeySet) -> Result<DataMap, SdlError> {
@@ -223,8 +222,7 @@ impl SdlStorageApi for RedisStorage {
             .iter()
             .map(|k| Self::key_from_ns_and_key(namespace, k))
             .collect::<Vec<String>>();
-        let _ = db
-            .del::<_, ()>(db_keys)
+        db.del::<_, ()>(db_keys)
             .map_err(|e| SdlError::from(e.to_string()))?;
 
         Ok(())
@@ -238,8 +236,7 @@ impl SdlStorageApi for RedisStorage {
             .map_err(|e| SdlError::from(e.to_string()))?
             .collect::<Vec<String>>();
 
-        let _ = db
-            .del::<_, ()>(db_keys)
+        db.del::<_, ()>(db_keys)
             .map_err(|e| SdlError::from(e.to_string()))?;
 
         Ok(())
@@ -251,7 +248,7 @@ impl SdlStorageApi for RedisStorage {
             .get::<_, Vec<u8>>(Self::key_from_ns_and_key(namespace, key))
             .map_err(|e| SdlError::from(e.to_string()))?;
 
-        Ok(&stored_value == value)
+        Ok(stored_value == value)
     }
 
     fn list_keys(&mut self, namespace: &str, pattern: &str) -> Result<KeySet, SdlError> {
@@ -259,10 +256,9 @@ impl SdlStorageApi for RedisStorage {
         let keys_pattern = Self::key_from_ns_and_key(namespace, pattern);
         let db_keys = db
             .scan_match::<_, String>(keys_pattern)
-            .map_err(|e| SdlError::from(e.to_string()))?
-            .collect::<Vec<String>>();
+            .map_err(|e| SdlError::from(e.to_string()))?;
 
-        Ok(KeySet::from_iter(db_keys.into_iter()))
+        Ok(KeySet::from_iter(db_keys))
     }
 
     fn add_member(
@@ -273,8 +269,7 @@ impl SdlStorageApi for RedisStorage {
     ) -> Result<(), SdlError> {
         let db = self.db_handle_for_ns(namespace)?;
         let set_name = Self::key_from_ns_and_key(namespace, group);
-        let _ = db
-            .sadd(set_name, value)
+        db.sadd(set_name, value)
             .map_err(|e| SdlError::from(e.to_string()))?;
         Ok(())
     }
@@ -287,8 +282,7 @@ impl SdlStorageApi for RedisStorage {
     ) -> Result<(), SdlError> {
         let db = self.db_handle_for_ns(namespace)?;
         let set_name = Self::key_from_ns_and_key(namespace, group);
-        let _ = db
-            .srem(set_name, value)
+        db.srem(set_name, value)
             .map_err(|e| SdlError::from(e.to_string()))?;
         Ok(())
     }
@@ -305,8 +299,7 @@ impl SdlStorageApi for RedisStorage {
     fn del_group(&mut self, namespace: &str, group: &str) -> Result<(), SdlError> {
         let db = self.db_handle_for_ns(namespace)?;
         let set_name = Self::key_from_ns_and_key(namespace, group);
-        let _ = db
-            .del::<_, ()>(set_name)
+        db.del::<_, ()>(set_name)
             .map_err(|e| SdlError::from(e.to_string()))?;
 
         Ok(())

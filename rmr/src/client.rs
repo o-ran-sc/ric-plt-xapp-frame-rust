@@ -150,7 +150,7 @@ mod tests {
 
         let client = client.unwrap();
 
-        let msg_buffer = crate::RMRMessageBuffer::new(&client);
+        let _ = crate::RMRMessageBuffer::new(&client);
         assert!(true);
     }
 }

@@ -75,13 +75,13 @@ impl RedisStorage {
             .map(|m| NbIdentity::decode(m.as_slice()))
             .collect::<Vec<Result<NbIdentity, DecodeError>>>();
 
-        let nbid_errs: _ = nbids
+        if nbids
             .iter()
             .filter(|v| v.is_err())
             .map(|e| e.as_ref().err().unwrap())
-            .collect::<Vec<&DecodeError>>();
-
-        if !nbid_errs.is_empty() {
+            .next()
+            .is_some()
+        {
             Err(RnibError::from("NodebIdentityDecodeError:".to_string()))
         } else {
             let nbids = nbids
