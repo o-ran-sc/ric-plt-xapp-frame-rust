@@ -7,3 +7,6 @@
 
 # Ignore the generated files
 test_route.rt.stash.inc
+
+# Ignore OpenAPI docs files
+api/docs/

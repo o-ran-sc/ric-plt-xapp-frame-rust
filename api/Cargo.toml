@@ -1,0 +1,20 @@
+[package]
+name = "ric-subscriptions"
+version = "0.1.0"
+authors = ["OpenAPI Generator team and contributors"]
+description = "Xapp Subscription API OpenAPI Models."
+license-file = "LICENSE.txt"
+edition = "2018"
+
+[dependencies]
+serde = "^1.0"
+serde_derive = "^1.0"
+serde_json = "^1.0"
+
+url = "^2.2"
+uuid = { version = "^1.0", features = ["serde"] }
+
+# We are not using the `api` client hence no `reqwest` dependency.
+# The xApp should directly use the appropriate client
+# Currently only `reqwest::blocking` is supported.
+#reqwest = { version = "^0.11", features = ["json", "multipart"] }
