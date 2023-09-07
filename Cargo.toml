@@ -4,5 +4,6 @@ members = [
         "xapp",
 	"rnib",
 	"sdl",
-	"api",
+	"subscription-api",
+	"registration-api",
 ]

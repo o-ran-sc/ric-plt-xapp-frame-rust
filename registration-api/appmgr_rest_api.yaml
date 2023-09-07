@@ -1,0 +1,611 @@
+swagger: '2.0'
+info:
+  description: This is a draft API for RIC appmgr
+  version: 0.3.3
+  title: RIC appmgr
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+host: hostname
+basePath: /ric/v1
+schemes:
+  - http
+paths:
+  /health/alive :
+    get :
+      summary     : Health check of xApp Manager - Liveness probe
+      tags        :
+        - health
+      operationId : getHealthAlive
+      responses   :
+        '200' :
+          description : Status of xApp Manager is ok
+  /health/ready :
+    get :
+      summary     : Readiness check of xApp Manager - Readiness probe
+      tags        :
+        - health
+      operationId : getHealthReady
+      responses   :
+        '200':
+          description : xApp Manager is ready for service
+        '503':
+          description: xApp Manager is not ready for service
+  /xapps:
+    post:
+      summary: Deploy a xapp
+      tags:
+        - xapp
+      operationId: deployXapp
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: XappDescriptor
+          in: body
+          description: xApp deployment info
+          schema:
+            $ref: '#/definitions/XappDescriptor'
+      responses:
+        '201':
+          description: xApp successfully created
+          schema:
+            $ref: '#/definitions/Xapp'
+        '400':
+          description: Invalid input
+        '500':
+          description: Internal error
+    get:
+      summary: Returns the status of all xapps
+      tags:
+        - xapp
+      operationId: getAllXapps
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: successful query of xApps
+          schema:
+            $ref: '#/definitions/AllDeployedXapps'
+        '500':
+          description: Internal error
+  /xapps/list:
+    get:
+      summary: Returns the list of all deployable xapps
+      tags:
+        - xapp
+      operationId: listAllXapps
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: successful list of deployable xApps
+          schema:
+            $ref: '#/definitions/AllDeployableXapps'
+        '500':
+          description: Internal error
+  /xapps/{xAppName}:
+    get:
+      summary: Returns the status of a given xapp
+      tags:
+        - xapp
+      operationId: getXappByName
+      produces:
+        - application/json
+      parameters:
+        - name: xAppName
+          in: path
+          description: Name of xApp
+          required: true
+          type: string
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/Xapp'
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: Xapp not found
+        '500':
+          description: Internal error
+    delete:
+      summary: Undeploy an existing xapp
+      tags:
+        - xapp
+      operationId: undeployXapp
+      parameters:
+        - name: xAppName
+          in: path
+          description: Xapp to be undeployed
+          required: true
+          type: string
+      responses:
+        '204':
+          description: Successful deletion of xApp
+        '400':
+          description: Invalid xApp name supplied
+        '500':
+          description: Internal error
+  /xapps/{xAppName}/instances/{xAppInstanceName}:
+    get:
+      summary: Returns the status of a given xapp
+      tags:
+        - xapp
+      operationId: getXappInstanceByName
+      produces:
+        - application/json
+      parameters:
+        - name: xAppName
+          in: path
+          description: Name of xApp
+          required: true
+          type: string
+        - name: xAppInstanceName
+          in: path
+          description: Name of xApp instance to get information
+          required: true
+          type: string
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/XappInstance'
+        '400':
+          description: Invalid name supplied
+        '404':
+          description: Xapp not found
+        '500':
+          description: Internal error
+  /config:
+    put:
+      summary: Modify xApp config
+      tags:
+        - xapp
+      operationId: ModifyXappConfig
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: XAppConfig
+          in: body
+          description: xApp config
+          schema:
+            $ref: '#/definitions/XAppConfig'
+      responses:
+        '200':
+          description: xApp config successfully modified
+          schema:
+            $ref: '#/definitions/ConfigValidationErrors'
+        '400':
+          description: Invalid input
+        '422':
+          description: Validation of configuration failed
+        '500':
+          description: Internal error
+    get:
+      summary: Returns the configuration of all xapps
+      tags:
+        - xapp
+      operationId: getAllXappConfig
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: successful query of xApp config
+          schema:
+            $ref: '#/definitions/AllXappConfig'
+        '500':
+          description: Internal error
+  /config/{element}:
+    get:
+      summary: Returns the given element of the configuration
+      tags:
+        - xapp
+      operationId: GetConfigElement
+      produces:
+        - application/json
+      parameters:
+        - name: element
+          in: path
+          description: Name of configuration element
+          required: true
+          type: string
+      responses:
+        '200':
+          description: successful query of config elements
+          schema:
+            $ref: '#/definitions/AllXappConfig'
+        '500':
+          description: Internal error
+  /subscriptions:
+    post:
+      summary: Subscribe event
+      tags:
+        - xapp
+        - subscriptions
+      operationId: addSubscription
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: subscriptionRequest
+          in: body
+          description: New subscription
+          required: true
+          schema:
+            $ref: '#/definitions/subscriptionRequest'
+      responses:
+        '201':
+          description: Subscription successfully created
+          schema:
+            $ref: '#/definitions/subscriptionResponse'
+        '400':
+          description: Invalid input
+    get:
+      summary: Returns all subscriptions
+      tags:
+        - xapp
+        - subscriptions
+      operationId: getSubscriptions
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: successful query of subscriptions
+          schema:
+            $ref: '#/definitions/allSubscriptions'
+  /subscriptions/{subscriptionId}:
+    get:
+      summary: Returns the information of subscription
+      tags:
+        - xapp
+        - subscriptions
+      operationId: getSubscriptionById
+      produces:
+        - application/json
+      parameters:
+        - name: subscriptionId
+          in: path
+          description: ID of subscription
+          required: true
+          type: string
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/subscription'
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: Subscription not found
+    put:
+      summary: Modify event subscription
+      tags:
+        - xapp
+        - subscriptions
+      operationId: modifySubscription
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: subscriptionId
+          in: path
+          description: ID of subscription
+          required: true
+          type: string
+        - in: body
+          name: subscriptionRequest
+          description: Modified subscription
+          required: true
+          schema:
+            $ref: '#/definitions/subscriptionRequest'
+      responses:
+        '200':
+          description: Subscription modification successful
+          schema:
+            $ref: '#/definitions/subscriptionResponse'
+        '400':
+          description: Invalid input
+    delete:
+      summary: Unsubscribe event
+      tags:
+        - xapp
+        - subscriptions
+      description: ''
+      operationId: deleteSubscription
+      parameters:
+        - name: subscriptionId
+          in: path
+          description: ID of subscription
+          required: true
+          type: string
+      responses:
+        '204':
+          description: Successful deletion of subscription
+        '400':
+          description: Invalid subscription supplied
+  /register:
+    post:
+      summary: Register a new xApp
+      tags:
+        - xapp
+        - registration
+      operationId: registerXapp
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: registerRequest
+          in: body
+          description: New xApp registration
+          required: true
+          schema:
+            $ref: '#/definitions/registerRequest'
+      responses:
+        '201':
+          description: Registration successful
+        '400':
+          description: Invalid input
+  /deregister:
+    post:
+      summary: Deregister an existing xApp
+      tags:
+        - xapp
+        - registration
+      operationId: deregisterXapp
+      consumes:
+        - application/json
+      parameters:
+        - name: deregisterRequest
+          in: body
+          description: Xapp to be unregistered
+          required: true
+          schema:
+            $ref: '#/definitions/deregisterRequest'
+      responses:
+        '204':
+          description: Successful deregistration of xApp
+        '400':
+          description: Invalid xApp name supplied
+        '500':
+          description: Internal error
+definitions:
+  AllDeployableXapps:
+    type: array
+    items:
+      type: string
+  AllDeployedXapps:
+    type: array
+    items:
+      $ref: '#/definitions/Xapp'
+  Xapp:
+    type: object
+    required:
+      - name
+    properties:
+      name:
+        type: string
+      status:
+        type: string
+        description: xapp status in the RIC
+        enum:
+          - unknown
+          - deployed
+          - deleted
+          - superseded
+          - failed
+          - deleting
+      version:
+        type: string
+      instances:
+        type: array
+        items:
+          $ref: '#/definitions/XappInstance'
+  XappInstance:
+    type: object
+    required:
+      - name
+    properties:
+      name:
+        type: string
+      status:
+        type: string
+        description: xapp instance status
+        enum:
+          - pending
+          - running
+          - succeeded
+          - failed
+          - unknown
+          - completed
+          - crashLoopBackOff
+      ip:
+        type: string
+      port:
+        type: integer
+      txMessages:
+        type: array
+        items:
+          type: string
+      rxMessages:
+        type: array
+        items:
+          type: string
+      policies:
+         type: array
+         items:
+           type: integer
+  XappDescriptor:
+    type: object
+    required:
+      - xappName
+    properties:
+      xappName:
+        type: string
+        description: Name of the xApp in helm chart
+      helmVersion:
+        type: string
+        description: The exact xapp helm chart version to install
+      releaseName:
+        type: string
+        description: Name of the xapp to be visible in Kubernetes
+      namespace:
+        type: string
+        description: Name of the namespace to which xApp is deployed. Overrides the value given in Helm chart value file.
+      overrideFile:
+        type: object
+        description: JSON string of override file for 'helm install' command
+  XappDescriptorList:
+    type: array
+    items:
+      $ref: '#/definitions/XappDescriptor'
+  ConfigMetadata:
+    type: object
+    required:
+      - xappName
+      - namespace
+    properties:
+      xappName:
+        type: string
+        description: Name of the xApp
+      namespace:
+        type: string
+        description: Name of the namespace
+  ConfigValidationError:
+    type: object
+    required:
+      - field
+      - error
+    properties:
+      field:
+        type: string
+        description: Name of the parameter
+      error:
+        type: string
+        description: Description of validation error
+  ConfigValidationErrors:
+    type: array
+    items:
+      $ref: '#/definitions/ConfigValidationError'
+  XAppConfig:
+    type: object
+    required:
+      - metadata
+      - config
+    properties:
+      metadata:
+        $ref: '#/definitions/ConfigMetadata'
+      config:
+        type: object
+        description: Configuration in JSON format
+  AllXappConfig:
+    type: array
+    items:
+      $ref: '#/definitions/XAppConfig'
+  EventType:
+    type: string
+    description: Event which is subscribed
+    enum:
+      - deployed
+      - undeployed
+      - created
+      - modified
+      - deleted
+      - restarted
+      - all
+  SubscriptionData:
+    type: object
+    required:
+      - targetUrl
+      - eventType
+      - maxRetries
+      - retryTimer
+    properties:
+      targetUrl:
+        type: string
+        example: 'http://localhost:11111/apps/webhook/'
+      eventType:
+        $ref: '#/definitions/EventType'
+      maxRetries:
+        type: integer
+        description: Maximum number of retries
+      retryTimer:
+        type: integer
+        description: Time in seconds to wait before next retry
+  subscriptionRequest:
+    type: object
+    required:
+      - data
+    properties:
+      data:
+        $ref: '#/definitions/SubscriptionData'
+  subscriptionResponse:
+    type: object
+    properties:
+      id:
+        type: string
+      version:
+        type: integer
+      eventType:
+        $ref: '#/definitions/EventType'
+  allSubscriptions:
+    type: array
+    items:
+      $ref: '#/definitions/subscription'
+  subscription:
+    type: object
+    properties:
+      id:
+        type: string
+      data:
+        $ref: '#/definitions/SubscriptionData'
+  subscriptionNotification:
+    type: object
+    properties:
+      id:
+        type: string
+      version:
+        type: integer
+      eventType:
+        $ref: '#/definitions/EventType'
+      xApps:
+        $ref: '#/definitions/AllDeployedXapps'
+  registerRequest:
+    type: object
+    required:
+      - appName
+      - appInstanceName
+      - httpEndpoint
+      - rmrEndpoint
+    properties:
+      appName:
+        type: string
+      appVersion:
+        type: string
+      configPath:
+        type: string
+      appInstanceName:
+        type: string
+      httpEndpoint:
+        type: string
+      rmrEndpoint:
+        type: string
+      config:
+        type: string
+        description: Configuration in JSON string format
+  deregisterRequest:
+    type: object
+    required:
+      - appName
+      - appInstanceName
+    properties:
+      appName:
+        type: string
+      appInstanceName:
+        type: string
