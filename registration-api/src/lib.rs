@@ -1,10 +1,10 @@
 #[macro_use]
 extern crate serde_derive;
 
-extern crate serde;
-extern crate serde_json;
-extern crate url;
-extern crate reqwest;
+// DO NOT USE: `api` module
+// Right now we are only using the generated 'models'. Since the generated `api` are `async` and
+// yet not supported fully, simply a support for `models` is present.
+//
+// pub mod apis;
 
-pub mod apis;
 pub mod models;
