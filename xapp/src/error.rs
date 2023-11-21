@@ -1,5 +1,4 @@
 // ==================================================================================
-//   Copyright (c) 2022 Caurus
 //   Copyright (c) 2023 Abhijit Gadgil
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +14,30 @@
 //   limitations under the License.
 // ==================================================================================
 
-//! ORAN-SC xApp crate for Rust framework
+/// XAppError: Errors during execution of the framework code.
+#[derive(Debug)]
+pub struct XAppError(pub(crate) String);
 
-mod error;
-pub use error::XAppError;
+impl std::fmt::Display for XAppError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
-mod xapp;
-pub use crate::xapp::XApp;
+impl From<XAppError> for std::io::Error {
+    fn from(x: XAppError) -> Self {
+        std::io::Error::new(std::io::ErrorKind::Other, format!("{}", x))
+    }
+}
+
+impl From<rmr::RMRError> for XAppError {
+    fn from(_r: rmr::RMRError) -> Self {
+        XAppError("RMRError".to_string())
+    }
+}
+
+impl From<rnib::RnibError> for XAppError {
+    fn from(r: rnib::RnibError) -> Self {
+        XAppError(format!("RNIB Error: {}", r))
+    }
+}
