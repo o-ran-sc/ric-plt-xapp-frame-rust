@@ -14,6 +14,10 @@
 //   limitations under the License.
 // ==================================================================================
 
+//! Management of Registration and Deregistration of XApps
+//!
+//! This module implements APIs for interacting with App Manager of the NearRT RIC Platform.
+
 use std::sync::atomic::Ordering;
 
 use registration_api::models::{DeregisterRequest, RegisterRequest};
@@ -65,6 +69,7 @@ impl XApp {
         let req_client = reqwest::blocking::Client::new();
         let path = format!("{}/{}", APP_MGR_HOST, REGISTRATION_URL);
 
+        log::debug!("Sending Registration Request: '{}' to '{}'", json, path);
         let response = req_client
             .post(path)
             .header(reqwest::header::CONTENT_TYPE, "application/json")
@@ -104,6 +109,7 @@ impl XApp {
         let req_client = reqwest::blocking::Client::new();
         let path = format!("{}/{}", APP_MGR_HOST, REGISTRATION_URL);
 
+        log::debug!("Sending Deregistration Request: '{}' to '{}'", json, path);
         let response = req_client
             .post(path)
             .header(reqwest::header::CONTENT_TYPE, "application/json")

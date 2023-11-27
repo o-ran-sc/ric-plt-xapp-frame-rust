@@ -25,7 +25,7 @@ use sdl::RedisStorage;
 
 use crate::XAppError;
 
-static XAPP_FRAME_INITIALIZED: AtomicBool = AtomicBool::new(false);
+use self::alarms::client::AlarmClient;
 
 /// The main XApp structure
 ///
@@ -46,6 +46,8 @@ pub struct XApp {
     app_is_registered: Arc<AtomicBool>,
     app_name: Option<String>,
     app_instance_name: Option<String>,
+
+    alarm_client: Mutex<AlarmClient>,
 }
 
 impl XApp {
@@ -54,41 +56,35 @@ impl XApp {
     /// This is the main structure for the SDK. All Xapp actions will typically be performed with a
     /// handle to this structure.
     pub fn new(rmr_port: &str, rmr_flags: u32) -> Result<Self, XAppError> {
-        let initialized = XAPP_FRAME_INITIALIZED.load(Ordering::SeqCst);
+        let client = RMRClient::new(rmr_port, RMRClient::RMR_MAX_RCV_BYTES, rmr_flags)?;
+        let receiver_client = Arc::new(Mutex::new(client));
+        let processor_client = Arc::clone(&receiver_client);
 
-        if initialized {
-            Err(XAppError("XApp already initialized".to_string()))
-        } else {
-            let client = RMRClient::new(rmr_port, RMRClient::RMR_MAX_RCV_BYTES, rmr_flags)?;
-            let receiver_client = Arc::new(Mutex::new(client));
-            let processor_client = Arc::clone(&receiver_client);
+        let app_is_running = Arc::new(AtomicBool::new(false));
+        let receiver_running = Arc::clone(&app_is_running);
+        let processor_running = Arc::clone(&app_is_running);
 
-            let app_is_running = Arc::new(AtomicBool::new(false));
-            let receiver_running = Arc::clone(&app_is_running);
-            let processor_running = Arc::clone(&app_is_running);
+        let (data_tx, data_rx) = mpsc::channel();
+        let receiver = RMRReceiver::new(receiver_client, data_tx, receiver_running);
+        let processor = RMRProcessor::new(data_rx, processor_client, processor_running);
 
-            let (data_tx, data_rx) = mpsc::channel();
-            let receiver = RMRReceiver::new(receiver_client, data_tx, receiver_running);
-            let processor = RMRProcessor::new(data_rx, processor_client, processor_running);
+        // Uses `DBAAS_SERVICE_HOST` and `DBAAS_SERVICE_PORT` env variables setup.
+        let sdl_client = RedisStorage::new_from_env().map_err(|e| XAppError(e.to_string()))?;
 
-            // Uses `DBAAS_SERVICE_HOST` and `DBAAS_SERVICE_PORT` env variables setup.
-            let sdl_client = RedisStorage::new_from_env().map_err(|e| XAppError(e.to_string()))?;
+        let app_is_registered = Arc::new(AtomicBool::new(false));
 
-            let app_is_registered = Arc::new(AtomicBool::new(false));
-            XAPP_FRAME_INITIALIZED.store(true, Ordering::SeqCst);
-
-            Ok(Self {
-                receiver: Arc::new(Mutex::new(receiver)),
-                processor: Arc::new(Mutex::new(processor)),
-                sdl_client: Arc::new(Mutex::new(sdl_client)),
-                receiver_thread: None,
-                processor_thread: None,
-                app_is_running,
-                app_is_registered,
-                app_name: None,
-                app_instance_name: None,
-            })
-        }
+        Ok(Self {
+            receiver: Arc::new(Mutex::new(receiver)),
+            processor: Arc::new(Mutex::new(processor)),
+            sdl_client: Arc::new(Mutex::new(sdl_client)),
+            receiver_thread: None,
+            processor_thread: None,
+            app_is_running,
+            app_is_registered,
+            app_name: None,
+            app_instance_name: None,
+            alarm_client: Mutex::new(AlarmClient::new()),
+        })
     }
 
     /// Register an RMR Message handler function.
@@ -192,6 +188,7 @@ impl XApp {
     }
 }
 
+pub(crate) mod alarms;
 mod registration;
 mod subscription;
 

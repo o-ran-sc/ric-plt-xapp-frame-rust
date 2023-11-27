@@ -54,6 +54,11 @@ impl XApp {
 
         let req_client = reqwest::blocking::Client::new();
 
+        log::debug!(
+            "Sending Subscription Request: '{}' to '{}'",
+            subscription_json,
+            path
+        );
         let response = req_client
             .post(path)
             .header(reqwest::header::CONTENT_TYPE, "application/json")
