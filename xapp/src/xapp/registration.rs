@@ -14,6 +14,10 @@
 //   limitations under the License.
 // ==================================================================================
 
+//! Management of Registration and Deregistration of XApps
+//!
+//! This module implements APIs for interacting with App Manager of the NearRT RIC Platform.
+
 use std::sync::atomic::Ordering;
 
 use registration_api::models::{DeregisterRequest, RegisterRequest};
