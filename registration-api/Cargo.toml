@@ -1,6 +1,6 @@
 [package]
 name = "registration-api"
-version = "0.3.3"
+version = "0.2.0"
 authors = ["OpenAPI Generator team and contributors"]
 description = "This is a draft API for RIC appmgr"
 license = "Apache 2.0"
