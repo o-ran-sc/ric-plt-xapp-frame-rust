@@ -1,0 +1,5 @@
+# Since RMR library cannot be initialized with multiple threads,
+# we need to run all `XApp` related threads in a single threaded
+# environment
+[env]
+RUST_TEST_THREADS = "1"

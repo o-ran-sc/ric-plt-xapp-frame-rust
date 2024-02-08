@@ -22,17 +22,21 @@
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::Receiver;
+use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
 use crate::{RMRClient, RMRError, RMRMessageBuffer};
 
-pub type RMRProcessorFn =
-    fn(msg: &mut RMRMessageBuffer, client: &RMRClient) -> Result<(), RMRError>;
+pub type RMRProcessorFn<T> =
+    fn(msg: &mut RMRMessageBuffer, client: &RMRClient, sender: Sender<T>) -> Result<(), RMRError>;
 
-fn default_processor_fn(msg: &mut RMRMessageBuffer, _client: &RMRClient) -> Result<(), RMRError> {
+fn default_processor_fn<T>(
+    msg: &mut RMRMessageBuffer,
+    _client: &RMRClient,
+    _sender: Sender<T>,
+) -> Result<(), RMRError> {
     log::debug!(
         "Default processor function called for MessageType: {}",
         msg.msgtype
@@ -44,19 +48,22 @@ fn default_processor_fn(msg: &mut RMRMessageBuffer, _client: &RMRClient) -> Resu
 ///
 /// `RMRProcessor` is responsible for processing the received RMR messages, that are sent on a
 /// channel.
-pub struct RMRProcessor {
+pub struct RMRProcessor<T> {
     data_rx: Receiver<RMRMessageBuffer>,
     client: Arc<Mutex<RMRClient>>,
     is_running: Arc<AtomicBool>,
-    handlers: HashMap<i32, RMRProcessorFn>,
-    default: RMRProcessorFn,
+    handlers: HashMap<i32, RMRProcessorFn<T>>,
+    default: RMRProcessorFn<T>,
+
+    app_tx: Sender<T>,
 }
 
-impl RMRProcessor {
+impl<T: Send + 'static> RMRProcessor<T> {
     pub fn new(
         data_rx: Receiver<RMRMessageBuffer>,
         client: Arc<Mutex<RMRClient>>,
         is_running: Arc<AtomicBool>,
+        app_tx: Sender<T>,
     ) -> Self {
         Self {
             data_rx,
@@ -64,10 +71,11 @@ impl RMRProcessor {
             is_running,
             handlers: HashMap::new(),
             default: default_processor_fn,
+            app_tx,
         }
     }
 
-    pub fn register_processor(&mut self, msgtype: i32, func: RMRProcessorFn) {
+    pub fn register_processor(&mut self, msgtype: i32, func: RMRProcessorFn<T>) {
         let _existing = self.handlers.insert(msgtype, func);
     }
 
@@ -101,7 +109,7 @@ impl RMRProcessor {
             .client
             .lock()
             .expect("RMR Client Mutex Corrupted in RMRProcessor");
-        let _ = handler(&mut msg, &client);
+        let _ = handler(&mut msg, &client, self.app_tx.clone());
         msg.free();
     }
 }

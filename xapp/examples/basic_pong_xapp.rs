@@ -44,7 +44,11 @@ fn get_config_data() -> xapp::XAppConfig {
     }
 }
 
-fn handle_pong_msg(msg: &mut RMRMessageBuffer, client: &RMRClient) -> Result<(), RMRError> {
+fn handle_pong_msg(
+    msg: &mut RMRMessageBuffer,
+    client: &RMRClient,
+    _sender: std::sync::mpsc::Sender<()>,
+) -> Result<(), RMRError> {
     match serde_json::from_slice::<serde_json::map::Map<_, _>>(msg.get_payload()) {
         Ok(mut m) => {
             if m.contains_key("test_send") {
@@ -68,7 +72,8 @@ fn handle_pong_msg(msg: &mut RMRMessageBuffer, client: &RMRClient) -> Result<(),
 fn main() {
     println!("A very basic XApp that responds to Ping Messages");
 
-    let mut xapp = XApp::from_config(get_config_data()).unwrap();
+    let (app_tx, _) = std::sync::mpsc::channel::<()>();
+    let mut xapp = XApp::from_config(get_config_data(), app_tx).unwrap();
 
     xapp.register_handler(60000, handle_pong_msg);
 
