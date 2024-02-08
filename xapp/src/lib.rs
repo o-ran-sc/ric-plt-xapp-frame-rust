@@ -22,5 +22,6 @@ pub use error::XAppError;
 
 mod xapp;
 pub use crate::xapp::XApp;
+pub use crate::xapp::{ConfigMetadata, XAppConfig};
 
 pub use crate::xapp::alarms::types::{Alarm, AlarmSeverity};

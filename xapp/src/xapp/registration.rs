@@ -149,6 +149,6 @@ impl XApp {
     fn get_from_env(ns: &str, xapp: &str, service: &str, typ: &str) -> String {
         let env_name = format!("SERVICE_{}_{}_{}_SERVICE_{}", ns, xapp, service, typ,);
         let env_name = env_name.replace(['-'], "_").to_uppercase();
-        std::env::var(env_name).expect("Env Not Set!")
+        std::env::var(env_name.clone()).expect(&format!("Env '{env_name}' Not Set!"))
     }
 }

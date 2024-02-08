@@ -1,6 +1,6 @@
 [package]
 name = "ric-subscriptions"
-version = "0.2.0"
+version = "0.3.0-dev"
 authors = ["OpenAPI Generator team and contributors"]
 description = "Xapp Subscription API OpenAPI Models."
 license-file = "LICENSE.txt"
