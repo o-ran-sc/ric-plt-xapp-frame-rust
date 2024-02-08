@@ -14,8 +14,6 @@
 //   limitations under the License.
 // ==================================================================================
 
-use std::time::Duration;
-
 use rmr::{RMRClient, RMRError, RMRMessageBuffer};
 use xapp::XApp;
 
@@ -68,13 +66,28 @@ fn handle_pong_msg(msg: &mut RMRMessageBuffer, client: &RMRClient) -> Result<(),
 fn main() {
     println!("A very basic XApp that responds to Ping Messages");
 
-    let mut xapp = XApp::from_config(get_config_data()).unwrap();
-
-    xapp.register_handler(60000, handle_pong_msg);
+    let (app_tx, app_rx) = std::sync::mpsc::channel();
+    let mut xapp = XApp::from_config(get_config_data(), app_tx).unwrap();
 
     xapp.start();
 
-    std::thread::sleep(Duration::from_secs(10000));
+    loop {
+        let message = app_rx.recv();
+
+        if let Err(e) = message {
+            eprintln!("Error {e} receiving RMR message!");
+            break;
+        }
+        let mut message = message.unwrap();
+
+        let client = xapp.get_rmr_client();
+        let client = client.lock().unwrap();
+
+        if let Err(e) = handle_pong_msg(&mut message, &*client) {
+            eprintln!("Error {e} handle pong message");
+            break;
+        }
+    }
 
     xapp.stop();
 
