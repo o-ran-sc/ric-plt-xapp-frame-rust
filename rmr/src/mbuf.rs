@@ -1,5 +1,6 @@
 // ==================================================================================
 //   Copyright (c) 2022 Caurus
+//   Copyright (c) 2023 Abhijit Gadgil
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -105,6 +106,10 @@ impl RMRMessageBuffer {
             let size = (*self.buff).len as usize;
             std::slice::from_raw_parts((*self.buff).payload, size)
         }
+    }
+
+    pub fn get_msgtype(&self) -> i32 {
+        self.msgtype
     }
 }
 

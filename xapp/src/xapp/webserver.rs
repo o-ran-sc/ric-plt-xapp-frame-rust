@@ -14,11 +14,25 @@
 //   limitations under the License.
 // ==================================================================================
 
+use std::sync::OnceLock;
+
+use tokio::sync::mpsc::Receiver as TokioSyncReceiver;
+use tokio::sync::RwLock;
+
 use axum::{routing::get, Json, Router};
+
+static METRICS_RECEIVER: OnceLock<RwLock<String>> = OnceLock::new();
+
+async fn metrics_receiver() -> String {
+    let value = METRICS_RECEIVER.get_or_init(|| RwLock::new(String::new()));
+    let value = value.read().await;
+    (*value).clone()
+}
 
 #[tokio::main]
 pub(crate) async fn run_ready_live_server(
     config: crate::XAppConfig,
+    mut data_rx: TokioSyncReceiver<String>,
 ) -> Result<(), crate::XAppError> {
     log::info!("Starting Ready and Alive handlers!");
 
@@ -27,13 +41,37 @@ pub(crate) async fn run_ready_live_server(
     let webapp = Router::new()
         .route("/ric/v1/health/ready", get(|| async { Json("OK") }))
         .route("/ric/v1/health/alive", get(|| async { Json("OK") }))
-        .route("/ric/v1/config", get(|| async { Json(vec![config]) }));
+        .route("/ric/v1/config", get(|| async { Json(vec![config]) }))
+        .route("/ric/v1/metrics", get(metrics_receiver));
 
     let bind_address = format!("0.0.0.0:{port_num}");
-    axum::Server::bind(&bind_address.parse().unwrap())
-        .serve(webapp.into_make_service())
-        .await
-        .unwrap();
+    let server =
+        axum::Server::bind(&bind_address.parse().unwrap()).serve(webapp.into_make_service());
+
+    tokio::pin!(server);
+
+    loop {
+        tokio::select! {
+            // Tokio sync receiver has got a non-blocking `recv` method which returns a `Future`.
+            Some(v) = data_rx.recv() => {
+                let mut parts = v.split(':');
+                if let Some(v) = parts.next() {
+                    if v == "metrics" {
+                        if let Some(metrics) = parts.next() {
+                            let value = METRICS_RECEIVER.get_or_init(|| RwLock::new(String::new()));
+                            let mut value = value.write().await;
+                            value.clear();
+                            value.push_str(metrics);
+                        }
+                    }
+                } else {
+                    break;
+                }
+            }
+            _ = &mut server => break,
+
+        }
+    }
 
     Ok(())
 }

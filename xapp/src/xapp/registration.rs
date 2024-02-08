@@ -27,7 +27,6 @@ use super::{XApp, XAppError};
 const APP_MGR_HOST: &str = "http://service-ricplt-appmgr-http.ricplt:8080";
 const REGISTRATION_URL: &str = "ric/v1/register";
 const CONFIG_PATH: &str = "/ric/v1/config";
-const DEFAULT_XAPP_NS: &str = "ricxapp";
 
 impl XApp {
     /// Register the XApp with the App Manager
@@ -38,7 +37,7 @@ impl XApp {
         config: &str,
         xapp_ns: Option<&str>,
     ) -> Result<(), XAppError> {
-        let ns = xapp_ns.unwrap_or(DEFAULT_XAPP_NS);
+        let ns = xapp_ns.unwrap_or(crate::xapp::DEFAULT_XAPP_NS);
         let http_host = Self::get_from_env(ns, xapp_name, "http", "host");
         let http_port = Self::get_from_env(ns, xapp_name, "http", "port");
         let http_endpoint = format!("{}:{}", http_host, http_port);
