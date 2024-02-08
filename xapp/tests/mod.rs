@@ -29,7 +29,8 @@ fn get_config_data() -> xapp::XAppConfig {
 
 #[test]
 fn test_xapp_start_rmr_not_ready_stop() {
-    let xapp = XApp::from_config(get_config_data());
+    let (app_tx, _) = std::sync::mpsc::channel::<()>();
+    let xapp = XApp::from_config(get_config_data(), app_tx);
     assert!(xapp.is_ok());
 
     let mut xapp = xapp.unwrap();

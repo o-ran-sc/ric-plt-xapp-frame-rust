@@ -25,6 +25,7 @@ use rmr;
 fn handle_pong_msg(
     msg: &mut rmr::RMRMessageBuffer,
     client: &rmr::RMRClient,
+    _sender: mpsc::Sender<()>,
 ) -> Result<(), rmr::RMRError> {
     match serde_json::from_slice::<serde_json::map::Map<_, _>>(msg.get_payload()) {
         Ok(mut m) => {
@@ -51,6 +52,8 @@ fn main() -> Result<(), std::io::Error> {
 
     let (data_tx, data_rx) = mpsc::channel();
 
+    let (app_tx, _app_rx) = mpsc::channel();
+
     let receiver_client = Arc::new(Mutex::new(rmr::RMRClient::new("4562", 0, 0)?));
     let processor_client = Arc::clone(&receiver_client);
 
@@ -61,7 +64,8 @@ fn main() -> Result<(), std::io::Error> {
 
     let receiver_thread = rmr::RMRReceiver::start(receiver);
 
-    let mut processor = rmr::RMRProcessor::new(data_rx, processor_client, Arc::clone(&is_running));
+    let mut processor =
+        rmr::RMRProcessor::new(data_rx, processor_client, Arc::clone(&is_running), app_tx);
 
     processor.register_processor(60000, handle_pong_msg);
     let processor_thread = rmr::RMRProcessor::start(Arc::new(Mutex::new(processor)));

@@ -28,7 +28,7 @@ mod alarm_xapp {
 
     use super::types;
 
-    impl XApp {
+    impl<T> XApp<T> {
         /// Raise the Alarm with given Alarm ID, Cause, Severity and Additional Info
         pub fn raise_alarm(
             &self,
