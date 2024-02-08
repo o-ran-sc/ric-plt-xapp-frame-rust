@@ -14,12 +14,14 @@
 //   limitations under the License.
 // ==================================================================================
 
+use std::convert::TryInto;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread::JoinHandle;
 
 use rmr::{RMRClient, RMRError, RMRProcessor, RMRProcessorFn, RMRReceiver};
 
+pub use registration_api::models::{ConfigMetadata, XAppConfig};
 use rnib::{entities::NbIdentity, RnibApi};
 use sdl::RedisStorage;
 
@@ -33,6 +35,8 @@ use self::alarms::client::AlarmClient;
 /// instance during the application. This is a wrapper structure over underlying RMR, SDL and RNIB
 /// APIs of the RIC platform.
 pub struct XApp {
+    config: XAppConfig,
+
     receiver: Arc<Mutex<RMRReceiver>>,
     receiver_thread: Option<JoinHandle<Result<(), RMRError>>>,
 
@@ -53,9 +57,12 @@ pub struct XApp {
 impl XApp {
     /// Create a new XApp struct.
     ///
+    /// Deprecated! Use `from_config` API instead.
+    ///
     /// This is the main structure for the SDK. All Xapp actions will typically be performed with a
     /// handle to this structure.
-    pub fn new(rmr_port: &str, rmr_flags: u32) -> Result<Self, XAppError> {
+    #[deprecated(since = "0.3.0-dev", note = "please use `from_config` instead.")]
+    pub fn new(rmr_port: &str, rmr_flags: u32, config: XAppConfig) -> Result<Self, XAppError> {
         let client = RMRClient::new(rmr_port, RMRClient::RMR_MAX_RCV_BYTES, rmr_flags)?;
         let receiver_client = Arc::new(Mutex::new(client));
         let processor_client = Arc::clone(&receiver_client);
@@ -84,7 +91,34 @@ impl XApp {
             app_name: None,
             app_instance_name: None,
             alarm_client: Mutex::new(AlarmClient::new()),
+            config,
         })
+    }
+
+    /// Create a new XApp struct using the given `XappConfig`
+    ///
+    pub fn from_config(config: XAppConfig) -> Result<Self, XAppError> {
+        let mut port_num = -1;
+        let ports = &config.config["messaging"]["ports"];
+        if !ports.is_null() {
+            if let Some(ports) = ports.as_array() {
+                for port in ports {
+                    let rmr_port = &port["name"];
+                    if rmr_port.as_str() == Some("rmrdata") {
+                        port_num = port["port"].as_i64().unwrap().try_into().unwrap();
+                    }
+                }
+            }
+        }
+        if port_num < 0 {
+            Err(XAppError(
+                "No RMR Data Port Configuration found.".to_string(),
+            ))
+        } else {
+            let port_num_str = format!("{}", port_num);
+            #[allow(deprecated)]
+            Self::new(&port_num_str, RMRClient::RMRFL_NONE, config)
+        }
     }
 
     /// Register an RMR Message handler function.
@@ -126,6 +160,7 @@ impl XApp {
 
         let processor_thread = RMRProcessor::start(Arc::clone(&self.processor));
         self.processor_thread = Some(processor_thread);
+
         log::info!("xapp started!");
     }
 
@@ -195,12 +230,34 @@ mod subscription;
 #[cfg(test)]
 mod tests {
 
+    fn get_config_data() -> crate::XAppConfig {
+        let config_json = r#"{
+        "messaging": {
+            "ports" : [
+                {
+                    "name": "rmrdata",
+                    "port": 4560
+                }
+            ]
+        }
+        }"#;
+
+        crate::XAppConfig {
+            metadata: Box::new(crate::ConfigMetadata {
+                xapp_name: "tests".to_string(),
+                config_type: "json".to_string(),
+            }),
+            config: serde_json::from_str(config_json).unwrap(),
+        }
+    }
+
     #[test]
     fn test_no_two_xapp_instances() {
-        let xapp_1 = crate::XApp::new("1234", 0);
+        let xapp_1 = crate::XApp::from_config(get_config_data());
         assert!(xapp_1.is_ok());
 
-        let xapp_2 = crate::XApp::new("2345", 0);
+        #[allow(deprecated)]
+        let xapp_2 = crate::XApp::new("2345", 0, get_config_data());
         assert!(xapp_2.is_err());
     }
 }

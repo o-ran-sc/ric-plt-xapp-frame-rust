@@ -1,6 +1,6 @@
 [package]
 name = "xapp"
-version = "0.2.0"
+version = "0.3.0-dev"
 edition = "2018"
 description = "An Open-Source Framework for Rust-based xApps on the O-RAN Software Community Near-Realtime RIC"
 readme = "README.md"

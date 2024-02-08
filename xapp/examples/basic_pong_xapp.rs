@@ -19,6 +19,27 @@ use std::time::Duration;
 use rmr::{RMRClient, RMRError, RMRMessageBuffer};
 use xapp::XApp;
 
+fn get_config_data() -> xapp::XAppConfig {
+    let config_json = r#"{
+        "messaging": {
+            "ports" : [
+                {
+                    "name": "rmrdata",
+                    "port": 4562
+                }
+            ]
+        }
+    }"#;
+
+    xapp::XAppConfig {
+        metadata: Box::new(xapp::ConfigMetadata {
+            xapp_name: "int-tests".to_string(),
+            config_type: "json".to_string(),
+        }),
+        config: serde_json::from_str(config_json).unwrap(),
+    }
+}
+
 fn handle_pong_msg(msg: &mut RMRMessageBuffer, client: &RMRClient) -> Result<(), RMRError> {
     match serde_json::from_slice::<serde_json::map::Map<_, _>>(msg.get_payload()) {
         Ok(mut m) => {
@@ -43,7 +64,7 @@ fn handle_pong_msg(msg: &mut RMRMessageBuffer, client: &RMRClient) -> Result<(),
 fn main() {
     println!("A very basic XApp that responds to Ping Messages");
 
-    let mut xapp = XApp::new("4562", RMRClient::RMRFL_NONE).unwrap();
+    let mut xapp = XApp::from_config(get_config_data()).unwrap();
 
     xapp.register_handler(60000, handle_pong_msg);
 
