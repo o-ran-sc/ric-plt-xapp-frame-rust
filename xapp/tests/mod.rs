@@ -3,9 +3,19 @@
 use rmr::RMRClient;
 use xapp::XApp;
 
+fn get_config_data() -> xapp::XAppConfig {
+    xapp::XAppConfig {
+        metadata: Box::new(xapp::ConfigMetadata {
+            xapp_name: "int-tests".to_string(),
+            config_type: "json".to_string(),
+        }),
+        config: serde_json::json!(""),
+    }
+}
+
 #[test]
 fn test_xapp_start_rmr_nt_ready_stop() {
-    let xapp = XApp::new("4560", RMRClient::RMRFL_NONE);
+    let xapp = XApp::new("4560", RMRClient::RMRFL_NONE, get_config_data());
     assert!(xapp.is_ok());
 
     let mut xapp = xapp.unwrap();
