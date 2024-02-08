@@ -1,11 +1,35 @@
 #![cfg(test)]
 
-use rmr::RMRClient;
 use xapp::XApp;
 
+fn get_config_data() -> xapp::XAppConfig {
+    let config_json = r#"{
+        "messaging": {
+            "ports" : [
+                {
+                    "name": "rmrdata",
+                    "port": 4560
+                },
+                {
+                    "name": "http",
+                    "port": 8080
+                }
+            ]
+        }
+    }"#;
+
+    xapp::XAppConfig {
+        metadata: Box::new(xapp::ConfigMetadata {
+            xapp_name: "int-tests".to_string(),
+            config_type: "json".to_string(),
+        }),
+        config: serde_json::from_str(config_json).unwrap(),
+    }
+}
+
 #[test]
-fn test_xapp_start_rmr_nt_ready_stop() {
-    let xapp = XApp::new("4560", RMRClient::RMRFL_NONE);
+fn test_xapp_start_rmr_not_ready_stop() {
+    let xapp = XApp::from_config(get_config_data());
     assert!(xapp.is_ok());
 
     let mut xapp = xapp.unwrap();
