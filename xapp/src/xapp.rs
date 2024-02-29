@@ -250,6 +250,8 @@ impl XApp {
 }
 
 pub(crate) mod alarms;
+pub(crate) mod metrics;
+
 mod registration;
 mod subscription;
 
