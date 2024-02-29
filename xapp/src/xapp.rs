@@ -28,6 +28,18 @@ use sdl::RedisStorage;
 use crate::XAppError;
 
 use self::alarms::client::AlarmClient;
+use self::metrics::MetricsRegistry;
+
+// XApp modules
+pub(crate) mod alarms;
+pub(crate) mod metrics;
+
+pub(crate) mod registration;
+pub(crate) mod subscription;
+
+pub(crate) mod webserver;
+
+pub(crate) const DEFAULT_XAPP_NS: &str = "ricxapp";
 
 /// The main XApp structure
 ///
@@ -57,6 +69,9 @@ pub struct XApp {
 
     // Client for communicating with Alarm Manager
     alarm_client: Mutex<AlarmClient>,
+
+    // Metrics support for the XApp
+    metrics: Option<MetricsRegistry>,
 
     // Web Server for serving health, metrics etc.
     webserver_thread: Option<JoinHandle<Result<(), XAppError>>>,
@@ -106,6 +121,8 @@ impl XApp {
 
             alarm_client: Mutex::new(AlarmClient::new()),
 
+            metrics: None,
+
             webserver_thread: None,
         })
     }
@@ -119,8 +136,14 @@ impl XApp {
         let _http_port_num = Self::port_from_config(&config, "http")?;
         let rmr_port_num = Self::port_from_config(&config, "rmrdata")?;
         let port_num_str = format!("{}", rmr_port_num);
+
+        let metrics = metrics::registry_for_ns_app(DEFAULT_XAPP_NS, &config.metadata.xapp_name)?;
+
         #[allow(deprecated)]
-        Self::new(&port_num_str, RMRClient::RMRFL_NONE, config)
+        let mut xapp = Self::new(&port_num_str, RMRClient::RMRFL_NONE, config)?;
+
+        let _ = xapp.metrics.replace(metrics);
+        Ok(xapp)
     }
 
     /// Register an RMR Message handler function.
@@ -249,47 +272,45 @@ impl XApp {
     }
 }
 
-pub(crate) mod alarms;
-mod registration;
-mod subscription;
-
-mod webserver;
-
 #[cfg(test)]
 mod tests {
 
-    fn get_config_data() -> crate::XAppConfig {
-        let config_json = r#"{
-        "messaging": {
+    pub(crate) fn get_config_data(rmr_port_num: u16) -> crate::XAppConfig {
+        let config_json = format!(
+            r#"{{
+        "messaging": {{
             "ports" : [
-                {
+                {{
                     "name": "rmrdata",
-                    "port": 4560
-                },
-                {
+                    "port": {rmr_port_num}
+                }},
+                {{
                     "name": "http",
                     "port": 8080
-                }
+                }}
             ]
-        }
-        }"#;
+        }}
+        }}"#
+        );
 
         crate::XAppConfig {
             metadata: Box::new(crate::ConfigMetadata {
                 xapp_name: "tests".to_string(),
                 config_type: "json".to_string(),
             }),
-            config: serde_json::from_str(config_json).unwrap(),
+            config: serde_json::from_str(&config_json).unwrap(),
         }
     }
 
     #[test]
     fn test_no_two_xapp_instances() {
-        let xapp_1 = crate::XApp::from_config(get_config_data());
+        let xapp_1 = crate::XApp::from_config(get_config_data(4560_u16));
         assert!(xapp_1.is_ok());
+        let xapp_1 = xapp_1.unwrap();
+        assert!(xapp_1.metrics.is_some());
 
         #[allow(deprecated)]
-        let xapp_2 = crate::XApp::new("2345", 0, get_config_data());
+        let xapp_2 = crate::XApp::new("2345", 0, get_config_data(4560));
         assert!(xapp_2.is_err());
     }
 

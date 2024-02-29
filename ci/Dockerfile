@@ -32,5 +32,5 @@ COPY . /ws
 
 RUN cargo build
 
-RUN cargo test
+RUN cargo test -- --test-threads 1
 
