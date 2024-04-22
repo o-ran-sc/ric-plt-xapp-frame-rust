@@ -1,0 +1,8 @@
+Verified+1: ORAN Required GHA <releng+oran.required.gha@linuxfoundation.org>
+Code-Review+2: Abhijit Gadgil <gabhijit@iitbombay.org>
+Verified+1: ORAN Jobbuilder <releng+oran-jobbuilder@linuxfoundation.org>
+Submitted-by: Abhijit Gadgil <gabhijit@iitbombay.org>
+Submitted-at: Mon, 22 Apr 2024 09:47:57 +0000
+Reviewed-on: https://gerrit.o-ran-sc.org/r/c/ric-plt/xapp-frame-rust/+/12214
+Project: ric-plt/xapp-frame-rust
+Branch: refs/heads/master
