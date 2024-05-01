@@ -55,16 +55,20 @@ pub(crate) async fn run_ready_live_server(
             // Tokio sync receiver has got a non-blocking `recv` method which returns a `Future`.
             Some(v) = data_rx.recv() => {
                 let mut parts = v.split(':');
-                if let Some(v) = parts.next() {
-                    if v == "metrics" {
+                if let Some(val) = parts.next() {
+                    if val == "metrics" {
                         if let Some(metrics) = parts.next() {
+                            log::debug!("Updating Metrics: {metrics:#?}");
                             let value = METRICS_RECEIVER.get_or_init(|| RwLock::new(String::new()));
                             let mut value = value.write().await;
                             value.clear();
                             value.push_str(metrics);
                         }
+                    } else {
+                        log::debug!("Received Data: {v:?} does not match the expected format!");
                     }
                 } else {
+                    log::debug!("Received Data: {v:?} does not match the expected format!");
                     break;
                 }
             }
