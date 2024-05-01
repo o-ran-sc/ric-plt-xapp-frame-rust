@@ -169,6 +169,8 @@ pub(crate) fn run_metrics_server(
     loop {
         let metrics = metrics.lock().unwrap();
         let metrics_data = metrics.encode();
+        drop(metrics);
+
         let _ = data_tx.blocking_send(metrics_data);
         std::thread::sleep(std::time::Duration::from_secs(1));
         if !app_is_running.load(Ordering::SeqCst) {
