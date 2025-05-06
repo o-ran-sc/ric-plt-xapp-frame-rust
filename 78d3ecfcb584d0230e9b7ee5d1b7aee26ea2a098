@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "b65fa6b6_f45315a0",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1002701
+      },
+      "writtenOn": "2025-05-06T23:32:45Z",
+      "side": 1,
+      "message": "CI is green on Patch-set 2. URLs switched to release repo. \nReady for review, thank you!",
+      "revId": "78d3ecfcb584d0230e9b7ee5d1b7aee26ea2a098",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53"
+    }
+  ]
+}
