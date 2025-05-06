@@ -21,7 +21,7 @@ This projects consists of the following crates.
 2. Make sure that `librmr_si` and it's header files are available at `/usr/local/lib` and `/usr/local/include/rmr` directories respectively.
    - On Debian-based systems, you can install RMR via .deb package as follows:
 
-         export RMRTAG=4.8.2
+         export RMRTAG=4.9.4
          wget --content-disposition https://packagecloud.io/o-ran-sc/staging/packages/debian/stretch/rmr_${RMRTAG}_amd64.deb/download.deb && dpkg -i rmr_${RMRTAG}_amd64.deb && rm -rf rmr_${RMRTAG}_amd64.deb
          wget --content-disposition https://packagecloud.io/o-ran-sc/staging/packages/debian/stretch/rmr-dev_${RMRTAG}_amd64.deb/download.deb && dpkg -i rmr-dev_${RMRTAG}_amd64.deb && rm -rf rmr-dev_${RMRTAG}_amd64.deb
 
