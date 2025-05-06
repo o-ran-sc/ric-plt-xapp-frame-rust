@@ -24,17 +24,17 @@ jobs:
           - beta
           - nightly
         rmr_tag:
-          - 4.8.2
+          - 4.9.4
     steps:
       - name: Checkout Repository and Submodules
         uses: actions/checkout@v3
         with:
           submodules: recursive
       - run: |
-          wget --content-disposition https://packagecloud.io/o-ran-sc/staging/packages/debian/stretch/rmr_${{ matrix.rmr_tag }}_amd64.deb/download.deb \
+          wget --content-disposition https://packagecloud.io/o-ran-sc/release/packages/debian/stretch/rmr_${{ matrix.rmr_tag }}_amd64.deb/download.deb \
             && sudo dpkg -i rmr_${{ matrix.rmr_tag }}_amd64.deb \
             && rm -rf rmr_${{ matrix.rmr_tag }}_amd64.deb
-          wget --content-disposition https://packagecloud.io/o-ran-sc/staging/packages/debian/stretch/rmr-dev_${{ matrix.rmr_tag }}_amd64.deb/download.deb \
+          wget --content-disposition https://packagecloud.io/o-ran-sc/release/packages/debian/stretch/rmr-dev_${{ matrix.rmr_tag }}_amd64.deb/download.deb \
             && sudo dpkg -i rmr-dev_${{ matrix.rmr_tag }}_amd64.deb \
             && rm -rf rmr-dev_${{ matrix.rmr_tag }}_amd64.deb
           sudo apt update && sudo apt install protobuf-compiler
